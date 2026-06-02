@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "~/components/layout/ThemeProvider";
 import { BottomNav } from "~/components/layout/BottomNav";
+import { ServiceWorkerRegistrar } from "~/components/layout/ServiceWorkerRegistrar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <ServiceWorkerRegistrar />
           <main className="pb-16">{children}</main>
           <BottomNav />
         </ThemeProvider>
