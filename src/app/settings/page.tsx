@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
+import { useEffect, useState } from 'react';
 import { useSettingsStore } from '~/store/useSettingsStore';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -42,6 +42,35 @@ export default function SettingsPage() {
             <option value="single-page">Single Page</option>
             <option value="webtoon">Webtoon</option>
           </select>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-3">Source Filters</h2>
+          <div className="mb-4">
+            <label className="block mb-2">Language</label>
+            <select
+              className="w-full p-2 rounded bg-muted border border-border"
+              value={settings.languageFilter}
+              onChange={(e) => settings.updateSettings({ languageFilter: e.target.value })}
+            >
+              <option value="all">All Languages</option>
+              <option value="en">English</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+              <option value="zh">Chinese</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="nsfw"
+              checked={settings.showNsfw}
+              onChange={(e) => settings.updateSettings({ showNsfw: e.target.checked })}
+              className="w-4 h-4"
+            />
+            <label htmlFor="nsfw">Show NSFW sources</label>
+          </div>
         </section>
 
         <section>

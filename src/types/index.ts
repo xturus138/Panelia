@@ -83,6 +83,8 @@ export interface AppSettings {
   pageFitMode: 'fit-width' | 'fit-height' | 'original' | 'auto';
   libraryViewMode: 'grid' | 'list';
   brightness: number; // 0-100
+  languageFilter: string;
+  showNsfw: boolean;
 }
 
 export interface SourceProvider {
