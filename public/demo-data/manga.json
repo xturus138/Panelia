@@ -1,0 +1,62 @@
+[
+  {
+    "id": "m1",
+    "sourceId": "mock",
+    "title": "Solo Leveling",
+    "coverUrl": "https://placehold.co/300x450/222222/cccccc?text=Solo+Leveling",
+    "author": "Chugong",
+    "artist": "DUBU",
+    "status": "completed",
+    "description": "In a world where hunters, humans who possess magical abilities, must battle deadly monsters to protect the human race from certain annihilation, a notoriously weak hunter named Sung Jinwoo finds himself in a seemingly endless struggle for survival.",
+    "genres": ["Action", "Fantasy"],
+    "tags": ["Webtoon"]
+  },
+  {
+    "id": "m2",
+    "sourceId": "mock",
+    "title": "One Piece",
+    "coverUrl": "https://placehold.co/300x450/222222/cccccc?text=One+Piece",
+    "author": "Eiichiro Oda",
+    "artist": "Eiichiro Oda",
+    "status": "ongoing",
+    "description": "Monkey D. Luffy sets off on a journey to find the legendary One Piece treasure and become the King of the Pirates.",
+    "genres": ["Action", "Adventure", "Comedy"],
+    "tags": ["Manga"]
+  },
+  {
+    "id": "m3",
+    "sourceId": "mock",
+    "title": "Demon Slayer",
+    "coverUrl": "https://placehold.co/300x450/222222/cccccc?text=Demon+Slayer",
+    "author": "Koyoharu Gotouge",
+    "artist": "Koyoharu Gotouge",
+    "status": "completed",
+    "description": "Tanjiro Kamado's journey to become a demon slayer and find a cure for his sister Nezuko, who was turned into a demon.",
+    "genres": ["Action", "Supernatural"],
+    "tags": ["Manga"]
+  },
+  {
+    "id": "m4",
+    "sourceId": "mock",
+    "title": "Jujutsu Kaisen",
+    "coverUrl": "https://placehold.co/300x450/222222/cccccc?text=Jujutsu+Kaisen",
+    "author": "Gege Akutami",
+    "artist": "Gege Akutami",
+    "status": "completed",
+    "description": "Yuji Itadori swallows a cursed finger and becomes the host of Ryomen Sukuna, the King of Curses.",
+    "genres": ["Action", "Supernatural"],
+    "tags": ["Manga"]
+  },
+  {
+    "id": "m5",
+    "sourceId": "mock",
+    "title": "Tower of God",
+    "coverUrl": "https://placehold.co/300x450/222222/cccccc?text=Tower+of+God",
+    "author": "SIU",
+    "artist": "SIU",
+    "status": "hiatus",
+    "description": "A boy named Bam enters a mysterious tower to find his best friend Rachel.",
+    "genres": ["Action", "Adventure", "Fantasy"],
+    "tags": ["Webtoon"]
+  }
+]

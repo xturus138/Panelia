@@ -1,0 +1,20 @@
+{
+  "m1": [
+    { "id": "m1-c1", "mangaId": "m1", "chapterNumber": 1, "title": "Prologue", "scanlator": "Official", "releaseDate": "2018-03-04", "pageCount": 5, "read": false, "lastReadPage": 0 },
+    { "id": "m1-c2", "mangaId": "m1", "chapterNumber": 2, "title": "The Hunter", "scanlator": "Official", "releaseDate": "2018-03-11", "pageCount": 5, "read": false, "lastReadPage": 0 },
+    { "id": "m1-c3", "mangaId": "m1", "chapterNumber": 3, "title": "The Gate", "scanlator": "Official", "releaseDate": "2018-03-18", "pageCount": 5, "read": false, "lastReadPage": 0 }
+  ],
+  "m2": [
+    { "id": "m2-c1", "mangaId": "m2", "chapterNumber": 1, "title": "Romance Dawn", "scanlator": "Official", "releaseDate": "1997-07-22", "pageCount": 5, "read": false, "lastReadPage": 0 },
+    { "id": "m2-c2", "mangaId": "m2", "chapterNumber": 2, "title": "That Guy Is Straw Hat Luffy", "scanlator": "Official", "releaseDate": "1997-07-29", "pageCount": 5, "read": false, "lastReadPage": 0 }
+  ],
+  "m3": [
+    { "id": "m3-c1", "mangaId": "m3", "chapterNumber": 1, "title": "Cruelty", "scanlator": "Official", "releaseDate": "2016-02-15", "pageCount": 5, "read": false, "lastReadPage": 0 }
+  ],
+  "m4": [
+    { "id": "m4-c1", "mangaId": "m4", "chapterNumber": 1, "title": "Ryomen Sukuna", "scanlator": "Official", "releaseDate": "2018-03-05", "pageCount": 5, "read": false, "lastReadPage": 0 }
+  ],
+  "m5": [
+    { "id": "m5-c1", "mangaId": "m5", "chapterNumber": 1, "title": "The Tower", "scanlator": "Official", "releaseDate": "2010-06-30", "pageCount": 5, "read": false, "lastReadPage": 0 }
+  ]
+}
