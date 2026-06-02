@@ -1,0 +1,27 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]: Loading sources...
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - link "Library" [ref=e6] [cursor=pointer]:
+        - /url: /library
+        - img [ref=e7]
+        - generic [ref=e9]: Library
+      - link "Browse" [ref=e10] [cursor=pointer]:
+        - /url: /browse
+        - img [ref=e11]
+        - generic [ref=e14]: Browse
+      - link "Updates" [ref=e15] [cursor=pointer]:
+        - /url: /updates
+        - img [ref=e16]
+        - generic [ref=e20]: Updates
+      - link "Downloads" [ref=e21] [cursor=pointer]:
+        - /url: /downloads
+        - img [ref=e22]
+        - generic [ref=e25]: Downloads
+      - link "Settings" [ref=e26] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e27]
+        - generic [ref=e30]: Settings
+  - button "Open Next.js Dev Tools" [ref=e36] [cursor=pointer]:
+    - img [ref=e37]
