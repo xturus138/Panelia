@@ -19,7 +19,7 @@ interface MangaDexManga {
   relationships: Array<{
     type: string;
     id: string;
-    attributes?: any;
+    attributes?: Record<string, unknown>;
   }>;
 }
 
@@ -168,12 +168,14 @@ export class MangaDexProvider implements SourceProvider {
 
   private getAuthorName(manga: MangaDexManga): string {
     const author = manga.relationships.find(r => r.type === 'author');
-    return author?.attributes?.name || 'Unknown';
+    const name = author?.attributes?.name;
+    return typeof name === 'string' ? name : 'Unknown';
   }
 
   private getArtistName(manga: MangaDexManga): string {
     const artist = manga.relationships.find(r => r.type === 'artist');
-    return artist?.attributes?.name || this.getAuthorName(manga);
+    const name = artist?.attributes?.name;
+    return typeof name === 'string' ? name : this.getAuthorName(manga);
   }
 
   private mapStatus(status: string): Manga['status'] {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { extensionService } from '~/services/extensions';
 import { sourceRegistry } from '~/services/sources';
 import { MangaCard } from '~/components/library/MangaCard';
@@ -13,17 +13,7 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadSources();
-  }, []);
-
-  useEffect(() => {
-    if (activeSource) {
-      loadManga();
-    }
-  }, [activeSource]);
-
-  async function loadSources() {
+  const loadSources = useCallback(async () => {
     try {
       setLoading(true);
       const data = await extensionService.getSources();
@@ -36,9 +26,9 @@ export default function BrowsePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function loadManga() {
+  const loadManga = useCallback(async () => {
     if (!activeSource) return;
 
     try {
@@ -51,7 +41,17 @@ export default function BrowsePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [activeSource]);
+
+  useEffect(() => {
+    loadSources();
+  }, [loadSources]);
+
+  useEffect(() => {
+    if (activeSource) {
+      loadManga();
+    }
+  }, [activeSource, loadManga]);
 
   if (loading && sources.length === 0) {
     return <div className="p-4">Loading sources...</div>;
