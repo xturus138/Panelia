@@ -31,14 +31,30 @@ export class ExtensionService {
       return cached;
     }
 
-    const response = await fetch(KEIYOSHI_INDEX_URL);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch Keiyoushi index: ${response.statusText}`);
+    let lastError: Error | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await fetch(KEIYOSHI_INDEX_URL, {
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data: KeiyoushiExtension[] = await response.json();
+        this.setCachedIndex(data);
+        return data;
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (attempt < 2) {
+          // Exponential backoff: 1s, 2s
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
     }
 
-    const data: KeiyoushiExtension[] = await response.json();
-    this.setCachedIndex(data);
-    return data;
+    throw lastError || new Error('Failed to fetch Keiyoushi index after retries');
   }
 
   private getCachedIndex(): KeiyoushiExtension[] | null {
