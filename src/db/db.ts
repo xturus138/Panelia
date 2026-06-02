@@ -6,7 +6,7 @@ class PaneliaDB extends Dexie {
   chapters!: EntityTable<Chapter, 'id'>;
   libraryEntries!: EntityTable<LibraryEntry, 'mangaId'>;
   categories!: EntityTable<Category, 'id'>;
-  readProgress!: EntityTable<ReadProgress, '[chapterId+mangaId]'>;
+  readProgress!: EntityTable<ReadProgress, 'chapterId'>;
   settings!: EntityTable<AppSettings, 'theme'>;
   downloadedChapters!: EntityTable<DownloadedChapter, 'id'>;
 
@@ -17,7 +17,7 @@ class PaneliaDB extends Dexie {
       chapters: 'id, mangaId, chapterNumber',
       libraryEntries: 'mangaId, *categories',
       categories: 'id, sortOrder',
-      readProgress: '[chapterId+mangaId], lastReadAt',
+      readProgress: 'chapterId, mangaId, lastReadAt',
       settings: 'theme',
       downloadedChapters: 'id, chapterId, mangaId',
     });
