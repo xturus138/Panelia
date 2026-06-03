@@ -21,6 +21,26 @@ import type { SiteConfig, ParsedMangaPage, SearchResult, ScrapeSource } from "~/
 
 type ViewMode = "sources" | "search" | "detail";
 
+const NOISE_PATTERNS = [/\/jp\.png/, /\/kr\.png/, /\/cn\.png/, /\/logo/, /\/icon/];
+const COVER_FALLBACK = "https://placehold.co/400x600/1a1a1a/cccccc?text=No+Cover";
+
+async function validateCoverUrl(url: string): Promise<string> {
+  if (!url) return COVER_FALLBACK;
+  if (NOISE_PATTERNS.some((p) => p.test(url))) return COVER_FALLBACK;
+
+  try {
+    const res = await fetch(url, { method: "HEAD" });
+    if (!res.ok) return COVER_FALLBACK;
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.startsWith("image/")) return COVER_FALLBACK;
+
+    return url;
+  } catch {
+    return COVER_FALLBACK;
+  }
+}
+
 export default function BrowsePage() {
   // Source state
   const [sources, setSources] = useState<ScrapeSource[]>([]);
@@ -77,29 +97,6 @@ export default function BrowsePage() {
     },
     [activeSource, configJson]
   );
-
-  const NOISE_PATTERNS = [/\/jp\.png/, /\/kr\.png/, /\/cn\.png/, /\/logo/, /\/icon/];
-
-  async function validateCoverUrl(url: string): Promise<string> {
-    const FALLBACK = "https://placehold.co/400x600/1a1a1a/cccccc?text=No+Cover";
-
-    if (!url) return FALLBACK;
-
-    // Check noise patterns
-    if (NOISE_PATTERNS.some((p) => p.test(url))) return FALLBACK;
-
-    try {
-      const res = await fetch(url, { method: "HEAD" });
-      if (!res.ok) return FALLBACK;
-
-      const contentType = res.headers.get("content-type") || "";
-      if (!contentType.startsWith("image/")) return FALLBACK;
-
-      return url;
-    } catch {
-      return FALLBACK;
-    }
-  }
 
   // ----- Search -----
   const handleSearch = useCallback(async () => {
