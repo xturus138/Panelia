@@ -23,6 +23,7 @@ export interface Chapter {
   pageCount: number;
   read: boolean;
   lastReadPage: number;
+  url?: string;
 }
 
 export interface Page {

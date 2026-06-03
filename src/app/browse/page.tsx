@@ -195,6 +195,7 @@ export default function BrowsePage() {
         pageCount: ch.pageCount,
         read: false,
         lastReadPage: 0,
+        url: ch.url,
       }));
       await db.chapters.bulkPut(chapterRows);
 
