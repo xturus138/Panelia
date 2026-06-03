@@ -1,169 +1,156 @@
 "use client";
 
-import { useCallback, useEffect, useState, useRef } from "react";
-import { ArrowLeft, ArrowRight, RefreshCw, Home, Save, Loader2, AlertCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  AlertCircle,
+  Wand2,
+  Search as SearchIcon,
+  BookOpen,
+  Settings2,
+  Library,
+  Check,
+} from "lucide-react";
 import { ScrapeAdapter } from "~/services/scrape/scrapeAdapter";
-import type { SiteConfig, ParsedMangaPage } from "~/services/scrape/types";
+import { autoDetectConfig } from "~/services/scrape/autoDetect";
+import { getBuiltinPresets, presetToScrapeSource } from "~/services/scrape/presets";
+import type { SiteConfig, ParsedMangaPage, SearchResult, ScrapeSource } from "~/services/scrape/types";
 
-interface PageState {
-  url: string;
-  html: string;
-  loading: boolean;
-  error: string | null;
-  history: string[];
-  historyIndex: number;
-}
-
-const DEFAULT_URL = "https://example.com";
+type ViewMode = "sources" | "search" | "detail";
 
 export default function BrowsePage() {
-  const [state, setState] = useState<PageState>({
-    url: DEFAULT_URL,
-    html: "",
-    loading: false,
-    error: null,
-    history: [DEFAULT_URL],
-    historyIndex: 0,
-  });
-
-  const [urlInput, setUrlInput] = useState(DEFAULT_URL);
+  // Source state
+  const [sources, setSources] = useState<ScrapeSource[]>([]);
+  const [activeSource, setActiveSource] = useState<ScrapeSource | null>(null);
+  const [view, setView] = useState<ViewMode>("sources");
   const [configJson, setConfigJson] = useState<string>("");
   const [showConfig, setShowConfig] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const configDirty = useRef(false);
 
-  const fetchUrl = useCallback(async (url: string) => {
-    setState((prev) => ({ ...prev, loading: true, error: null }));
-    try {
-      const res = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(err.error || err.detail || `HTTP ${res.status}`);
-      }
-      const html = await res.text();
-      setState((prev) => ({
-        ...prev,
-        url,
-        html,
-        loading: false,
-        error: null,
-      }));
-      setUrlInput(url);
-    } catch (err) {
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        error: err instanceof Error ? err.message : String(err),
-      }));
-    }
-  }, []);
+  // Search state
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
-  const navigate = useCallback((url: string) => {
-    setState((prev) => {
-      const newHistory = prev.history.slice(0, prev.historyIndex + 1);
-      newHistory.push(url);
-      return {
-        ...prev,
-        history: newHistory,
-        historyIndex: newHistory.length - 1,
-      };
-    });
-    fetchUrl(url);
-  }, [fetchUrl]);
+  // Detail state
+  const [currentUrl, setCurrentUrl] = useState<string>("");
+  const [mangaData, setMangaData] = useState<ParsedMangaPage | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [savedInSession, setSavedInSession] = useState(false);
 
-  const goBack = useCallback(() => {
-    setState((prev) => {
-      if (prev.historyIndex <= 0) return prev;
-      const newIndex = prev.historyIndex - 1;
-      const url = prev.history[newIndex];
-      if (url !== prev.url) fetchUrl(url);
-      return { ...prev, historyIndex: newIndex };
-    });
-  }, [fetchUrl]);
-
-  const goForward = useCallback(() => {
-    setState((prev) => {
-      if (prev.historyIndex >= prev.history.length - 1) return prev;
-      const newIndex = prev.historyIndex + 1;
-      const url = prev.history[newIndex];
-      if (url !== prev.url) fetchUrl(url);
-      return { ...prev, historyIndex: newIndex };
-    });
-  }, [fetchUrl]);
-
-  const refresh = useCallback(() => {
-    fetchUrl(state.url);
-  }, [fetchUrl, state.url]);
-
-  const goHome = useCallback(() => {
-    setState({
-      url: DEFAULT_URL,
-      html: "",
-      loading: false,
-      error: null,
-      history: [DEFAULT_URL],
-      historyIndex: 0,
-    });
-    setUrlInput(DEFAULT_URL);
-  }, []);
-
-  // Intercept link clicks in the iframe to navigate within Browse Mode
+  // Load presets on mount
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe || !state.html) return;
+    const loaded = getBuiltinPresets().map(presetToScrapeSource);
+    setSources(loaded);
+  }, []);
 
-    // srcdoc iframes are same-origin, so contentDocument is accessible
-    try {
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!doc) return;
-
-      const handleClick = (e: MouseEvent) => {
-        const target = e.target as HTMLElement;
-        const anchor = target.closest("a");
-        if (anchor && anchor.href && anchor.href !== "#") {
-          e.preventDefault();
-          e.stopPropagation();
-          navigate(anchor.href);
-        }
-      };
-      doc.addEventListener("click", handleClick);
-      return () => doc.removeEventListener("click", handleClick);
-    } catch {
-      // Cross-origin - should not happen with srcdoc
-    }
-  }, [state.html, navigate]);
-
-  const saveToLibrary = useCallback(async () => {
-    if (!state.html || !state.url) {
-      setSaveStatus("No page loaded");
-      setTimeout(() => setSaveStatus(null), 3000);
+  // When source changes, reset view and set default config
+  useEffect(() => {
+    if (!activeSource) {
+      setView("sources");
       return;
     }
-    if (!configJson) {
-      setSaveStatus("Please provide a site config (click the gear icon)");
-      setTimeout(() => setSaveStatus(null), 3000);
-      return;
-    }
+    setView("search");
+    setResults([]);
+    setMangaData(null);
+    setQuery("");
+    setConfigJson(JSON.stringify(activeSource.config, null, 2));
+    configDirty.current = false;
+    setSavedInSession(false);
+  }, [activeSource]);
 
-    let config: SiteConfig;
-    try {
-      config = JSON.parse(configJson);
-    } catch {
-      setSaveStatus("Invalid config JSON - check formatting");
-      setTimeout(() => setSaveStatus(null), 3000);
-      return;
-    }
+  // Build adapter from current config and URL
+  const getAdapter = useCallback(
+    (url: string): ScrapeAdapter => {
+      if (!activeSource) throw new Error("No source selected");
+      let config: SiteConfig;
+      try {
+        config = JSON.parse(configJson);
+      } catch {
+        throw new Error("Invalid config JSON");
+      }
+      return new ScrapeAdapter(activeSource.id, config, url);
+    },
+    [activeSource, configJson]
+  );
 
+  // ----- Search -----
+  const handleSearch = useCallback(async () => {
+    if (!activeSource || !query.trim()) return;
+    setSearchLoading(true);
+    setSaveStatus(null);
     try {
-      const sourceId = `user-${Date.now()}`;
-      const adapter = new ScrapeAdapter(sourceId, config, state.url);
-      const parsed: ParsedMangaPage = adapter.parseMangaPage(state.html);
+      const adapter = getAdapter(activeSource.baseUrl);
+      const searchResults = await adapter.searchManga(query.trim());
+      setResults(searchResults);
+      setView("search");
+      if (searchResults.length === 0) {
+        setSaveStatus("No results found");
+        setTimeout(() => setSaveStatus(null), 3000);
+      }
+    } catch (err) {
+      setSaveStatus(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
+      setTimeout(() => setSaveStatus(null), 5000);
+    }
+    setSearchLoading(false);
+  }, [activeSource, query, getAdapter]);
+
+  // ----- Select manga → fetch detail page -----
+  const handleSelectResult = useCallback(
+    async (result: SearchResult) => {
+      if (!activeSource) return;
+      setDetailLoading(true);
+      setSaveStatus(null);
+      setSavedInSession(false);
+      setCurrentUrl(result.url);
+      try {
+        const res = await fetch(`/api/proxy?url=${encodeURIComponent(result.url)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const html = await res.text();
+        const adapter = getAdapter(result.url);
+
+        // Preprocess HTML for extraction (same base + lazy-load fixes)
+        const processedHtml = html
+          .replace(/<head>/i, `<head><base href="${result.url}" />`)
+          .replace(/\sdata-(?:src|lazy-src|original)\s*=\s*(['"])(.*?)\1/gi, (_, quote, val) => ` src=${quote}${val}${quote} data-processed="true"`);
+
+        const parsed = adapter.parseMangaPage(processedHtml);
+        setMangaData(parsed);
+        setView("detail");
+      } catch (err) {
+        setSaveStatus(`Failed to load: ${err instanceof Error ? err.message : String(err)}`);
+        setTimeout(() => setSaveStatus(null), 5000);
+      }
+      setDetailLoading(false);
+    },
+    [activeSource, getAdapter]
+  );
+
+  // ----- Save to library -----
+  const handleSave = useCallback(async () => {
+    if (!activeSource || !mangaData || !currentUrl) return;
+    setSaveStatus(null);
+    try {
+      let config: SiteConfig;
+      try {
+        config = JSON.parse(configJson);
+      } catch {
+        setSaveStatus("Invalid config JSON");
+        setTimeout(() => setSaveStatus(null), 3000);
+        return;
+      }
+
+      const { db } = await import("~/db/db");
+      const { sourceRegistry } = await import("~/services/sources");
 
       // Save scrape source config
-      const { db } = await import("~/db/db");
       await db.scrapeSources.put({
-        id: sourceId,
-        name: config.name || parsed.title,
+        id: activeSource.id,
+        name: config.name || mangaData.title,
         baseUrl: config.baseUrl,
         config,
         createdAt: new Date().toISOString(),
@@ -171,23 +158,23 @@ export default function BrowsePage() {
 
       // Save manga to DB
       await db.manga.put({
-        id: parsed.id,
+        id: mangaData.id,
         sourceId: "scrape",
-        title: parsed.title,
-        coverUrl: parsed.coverUrl,
-        author: parsed.author,
-        artist: parsed.artist,
-        status: parsed.status,
-        description: parsed.description,
-        genres: parsed.genres,
-        tags: parsed.tags,
-        url: state.url,
-      } as any); // Manga type mismatch, cast acceptable
+        title: mangaData.title,
+        coverUrl: mangaData.coverUrl,
+        author: mangaData.author,
+        artist: mangaData.artist,
+        status: mangaData.status,
+        description: mangaData.description,
+        genres: mangaData.genres,
+        tags: mangaData.tags,
+        url: currentUrl,
+      } as any);
 
       // Save chapters
-      const chapterRows = parsed.chapters.map((ch) => ({
+      const chapterRows = mangaData.chapters.map((ch) => ({
         id: ch.id,
-        mangaId: parsed.id,
+        mangaId: mangaData.id,
         chapterNumber: ch.chapterNumber,
         title: ch.title,
         scanlator: ch.scanlator,
@@ -199,177 +186,347 @@ export default function BrowsePage() {
       }));
       await db.chapters.bulkPut(chapterRows);
 
-      // Register with sourceRegistry
-      const { sourceRegistry } = await import("~/services/sources");
-      sourceRegistry.registerScrapeSource(sourceId, config, state.url);
+      // Add to library
+      await db.libraryEntries.put({
+        mangaId: mangaData.id,
+        categories: [],
+        dateAdded: new Date().toISOString(),
+        unreadCount: chapterRows.length,
+      });
 
-      setSaveStatus(`Saved "${parsed.title}" with ${chapterRows.length} chapters!`);
+      // Register with sourceRegistry
+      sourceRegistry.registerScrapeSource(activeSource.id, config, currentUrl);
+
+      setSavedInSession(true);
+      setSaveStatus(`Saved "${mangaData.title}" with ${chapterRows.length} chapters!`);
     } catch (err) {
       setSaveStatus(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     setTimeout(() => setSaveStatus(null), 5000);
-  }, [state.html, state.url, configJson]);
+  }, [activeSource, mangaData, currentUrl, configJson]);
 
-  // Default config based on current URL origin
-  const loadExampleConfig = useCallback(() => {
+  // ----- Re-detect config for current detail page -----
+  const handleRedetect = useCallback(async () => {
+    if (!currentUrl) return;
     try {
-      const origin = new URL(state.url).origin;
-      setConfigJson(JSON.stringify({
-        name: new URL(state.url).hostname,
-        baseUrl: origin,
-        mangaPage: {
-          title: "h1",
-          cover: "img",
-          chapterList: "a",
-          chapterTitle: "",
-          chapterUrl: "",
-        },
-        chapterPage: { images: "img" },
-      }, null, 2));
-    } catch {
-      setConfigJson(`{\n  "name": "Site",\n  "baseUrl": "",\n  "mangaPage": {},\n  "chapterPage": {}\n}`);
-    }
-  }, [state.url]);
+      const res = await fetch(`/api/proxy?url=${encodeURIComponent(currentUrl)}`);
+      if (!res.ok) return;
+      const html = await res.text();
+      const config = autoDetectConfig(html, currentUrl);
+      setConfigJson(JSON.stringify(config, null, 2));
+      configDirty.current = false;
+    } catch {}
+  }, [currentUrl]);
 
+  // ----- Render -----
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
-      {/* URL Bar */}
-      <div className="flex items-center gap-2 p-3 bg-secondary border-b border-border">
+      {/* Source Tabs */}
+      <div className="flex items-center gap-2 px-3 pt-3 bg-secondary border-b border-border overflow-x-auto">
+        <BookOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        {sources.map((src) => (
+          <button
+            key={src.id}
+            onClick={() => setActiveSource(src)}
+            className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap ${
+              activeSource?.id === src.id
+                ? "bg-background text-foreground border border-border border-b-background -mb-px"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            }`}
+          >
+            {src.name}
+          </button>
+        ))}
         <button
-          onClick={goBack}
-          disabled={state.historyIndex <= 0}
-          className="p-2 rounded-lg hover:bg-secondary/80 disabled:opacity-30"
-          aria-label="Back"
+          disabled
+          className="px-3 py-2 rounded-t-lg text-xs text-muted-foreground/40 italic"
+          title="More sources coming soon"
         >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <button
-          onClick={goForward}
-          disabled={state.historyIndex >= state.history.length - 1}
-          className="p-2 rounded-lg hover:bg-secondary/80 disabled:opacity-30"
-          aria-label="Forward"
-        >
-          <ArrowRight className="w-4 h-4" />
-        </button>
-        <button
-          onClick={refresh}
-          className="p-2 rounded-lg hover:bg-secondary/80"
-          aria-label="Refresh"
-        >
-          <RefreshCw className={`w-4 h-4 ${state.loading ? "animate-spin" : ""}`} />
-        </button>
-        <button
-          onClick={goHome}
-          className="p-2 rounded-lg hover:bg-secondary/80"
-          aria-label="Home"
-        >
-          <Home className="w-4 h-4" />
-        </button>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const url = urlInput.startsWith("http") ? urlInput : `https://${urlInput}`;
-            setUrlInput(url);
-            navigate(url);
-          }}
-          className="flex-1"
-        >
-          <input
-            type="url"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            placeholder="Enter URL..."
-            className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </form>
-        <button
-          onClick={() => setShowConfig(!showConfig)}
-          className={`p-2 rounded-lg ${showConfig ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"}`}
-          aria-label="Toggle config"
-          title="Site scraping config"
-        >
-          &#9881;&#65039;
-        </button>
-        <button
-          onClick={saveToLibrary}
-          disabled={!state.html}
-          className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Save to library"
-          title="Save to library"
-        >
-          <Save className="w-4 h-4" />
+          + Add source
         </button>
       </div>
+
+      {/* Search Bar (only when source selected, not in detail view) */}
+      {activeSource && view !== "detail" && (
+        <div className="flex items-center gap-2 p-3 bg-secondary border-b border-border">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearch();
+            }}
+            className="flex-1 flex items-center gap-2"
+          >
+            <div className="relative flex-1">
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={`Search ${activeSource.name}...`}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={!query.trim() || searchLoading}
+              className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {searchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+            </button>
+          </form>
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className={`p-2.5 rounded-xl ${showConfig ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            title="Edit scrape config"
+          >
+            <Settings2 className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Config Panel */}
       {showConfig && (
         <div className="p-3 bg-card border-b border-border">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold">Site Config (JSON)</h3>
-            <button
-              onClick={loadExampleConfig}
-              className="text-xs text-primary hover:underline"
-              type="button"
-            >
-              Auto-generate
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRedetect}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+                type="button"
+              >
+                <Wand2 className="w-3 h-3" />
+                Auto-detect
+              </button>
+              <button
+                onClick={() => setShowConfig(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+                type="button"
+              >
+                Done
+              </button>
+            </div>
           </div>
           <textarea
             value={configJson}
-            onChange={(e) => setConfigJson(e.target.value)}
+            onChange={(e) => {
+              setConfigJson(e.target.value);
+              configDirty.current = true;
+            }}
             placeholder='{"name":"...","baseUrl":"...","mangaPage":{...},"chapterPage":{...}}'
-            className="w-full h-48 px-3 py-2 rounded-lg bg-background text-xs font-mono border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            className="w-full h-40 px-3 py-2 rounded-lg bg-background text-xs font-mono border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
           />
-          <p className="text-xs text-muted-foreground mt-2">
-            CSS selectors tell the scraper how to extract manga data from this site.
-            <button
-              onClick={() => setShowConfig(false)}
-              className="ml-2 text-primary hover:underline"
-              type="button"
-            >
-              Done
-            </button>
+          <p className="text-xs text-muted-foreground mt-1">
+            CSS selectors control how data is extracted. Edit and re-search or re-enter the detail page to apply changes.
           </p>
         </div>
       )}
 
-      {/* Save status */}
+      {/* Status bar */}
       {saveStatus && (
-        <div className="p-3 bg-primary/10 border-b border-primary/20 text-sm text-primary">
+        <div
+          className={`px-4 py-2 text-sm border-b ${
+            saveStatus.startsWith("Failed") || saveStatus.startsWith("Search failed")
+              ? "bg-destructive/10 border-destructive/20 text-destructive"
+              : "bg-primary/10 border-primary/20 text-primary"
+          }`}
+        >
           {saveStatus}
         </div>
       )}
 
-      {/* Content area */}
-      <div className="flex-1 relative overflow-hidden">
-        {state.loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          </div>
-        )}
-        {state.error && !state.loading && (
-          <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="max-w-md p-4 rounded-xl bg-destructive/10 border border-destructive/20 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-destructive">Failed to load</p>
-                <p className="text-xs text-muted-foreground mt-1">{state.error}</p>
-              </div>
+      {/* ============ Main Content ============ */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Sources landing */}
+        {view === "sources" && (
+          <div className="p-6 max-w-lg mx-auto pt-16">
+            <h2 className="text-lg font-semibold mb-1">Browse Sources</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Pick a source to search for manga by name.
+            </p>
+            <div className="flex flex-col gap-3">
+              {sources.map((src) => (
+                <button
+                  key={src.id}
+                  onClick={() => setActiveSource(src)}
+                  className="text-left p-4 rounded-xl bg-card border border-border hover:border-primary/40 hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-foreground">{src.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{src.baseUrl}</p>
+                    </div>
+                    <ArrowLeft className="w-5 h-5 text-muted-foreground rotate-180" />
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         )}
-        {state.html && !state.error && (
-          <iframe
-            ref={iframeRef}
-            srcDoc={state.html}
-            className="w-full h-full border-0 bg-white"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-            title="Browse"
-          />
+
+        {/* Search results */}
+        {view === "search" && (
+          <div className="p-4">
+            {searchLoading && (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {!searchLoading && results.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                <SearchIcon className="w-12 h-12 mb-3 opacity-30" />
+                <p className="text-sm">
+                  {query.trim() ? "No results found" : `Search for manga on ${activeSource?.name}`}
+                </p>
+              </div>
+            )}
+
+            {!searchLoading && results.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                {results.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => handleSelectResult(r)}
+                    className="group text-left bg-card rounded-xl border border-border overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
+                  >
+                    <div className="aspect-[3/4] bg-muted relative overflow-hidden">
+                      {r.coverUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={r.coverUrl}
+                          alt={r.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          <BookOpen className="w-8 h-8 opacity-30" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-2">
+                      <p className="text-xs font-medium text-foreground line-clamp-2 leading-relaxed">
+                        {r.title}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-        {!state.html && !state.loading && !state.error && (
-          <div className="absolute inset-0 flex items-center justify-center p-4">
-            <p className="text-muted-foreground">Enter a URL above to start browsing</p>
+
+        {/* Detail view */}
+        {view === "detail" && (
+          <div className="pb-24">
+            {detailLoading && (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {!detailLoading && mangaData && (
+              <>
+                {/* Back + save */}
+                <div className="sticky top-0 bg-background z-10 flex items-center gap-2 px-4 py-3 border-b border-border">
+                  <button
+                    onClick={() => setView("search")}
+                    className="p-2 rounded-lg hover:bg-muted"
+                    aria-label="Back to search"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <span className="text-sm font-medium text-foreground flex-1 truncate">
+                    {mangaData.title}
+                  </span>
+                  <button
+                    onClick={handleSave}
+                    disabled={savedInSession}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-all ${
+                      savedInSession
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-primary text-primary-foreground hover:bg-primary/80"
+                    }`}
+                  >
+                    {savedInSession ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Saved
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Save to Library
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Cover + Info */}
+                <div className="flex gap-4 p-4 border-b border-border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={mangaData.coverUrl}
+                    alt={mangaData.title}
+                    className="w-28 h-40 rounded-xl object-cover shadow-lg flex-shrink-0 bg-muted"
+                  />
+                  <div className="flex flex-col justify-center min-w-0">
+                    <h1 className="text-lg font-bold text-foreground leading-tight">
+                      {mangaData.title}
+                    </h1>
+                    {mangaData.author && (
+                      <p className="text-sm text-muted-foreground mt-1">{mangaData.author}</p>
+                    )}
+                    {mangaData.genres && mangaData.genres.length > 0 && (
+                      <div className="flex gap-1.5 mt-2 flex-wrap">
+                        {mangaData.genres.slice(0, 4).map((g) => (
+                          <span
+                            key={g}
+                            className="text-[10px] font-medium bg-secondary px-2 py-1 rounded-full"
+                          >
+                            {g}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {mangaData.description && (
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-3">
+                        {mangaData.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Chapter list */}
+                <div className="px-4 pt-4">
+                  <h2 className="text-sm font-semibold text-foreground mb-3">
+                    {mangaData.chapters.length} Chapters
+                  </h2>
+                  <div className="flex flex-col gap-1.5">
+                    {mangaData.chapters.map((ch) => (
+                      <Link
+                        key={ch.id}
+                        href={`/reader/${ch.id}?manga=${mangaData.id}`}
+                        className="block bg-card rounded-lg px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      >
+                        <span className="font-medium">
+                          Chapter {ch.chapterNumber}
+                          {ch.title ? `: ${ch.title}` : ""}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {!detailLoading && !mangaData && (
+              <div className="flex items-center justify-center py-20 text-muted-foreground">
+                <AlertCircle className="w-5 h-5 mr-2" />
+                <span className="text-sm">Could not load manga details</span>
+              </div>
+            )}
           </div>
         )}
       </div>
