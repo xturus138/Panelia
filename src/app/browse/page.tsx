@@ -78,6 +78,29 @@ export default function BrowsePage() {
     [activeSource, configJson]
   );
 
+  const NOISE_PATTERNS = [/\/jp\.png/, /\/kr\.png/, /\/cn\.png/, /\/logo/, /\/icon/];
+
+  async function validateCoverUrl(url: string): Promise<string> {
+    const FALLBACK = "https://placehold.co/400x600/1a1a1a/cccccc?text=No+Cover";
+
+    if (!url) return FALLBACK;
+
+    // Check noise patterns
+    if (NOISE_PATTERNS.some((p) => p.test(url))) return FALLBACK;
+
+    try {
+      const res = await fetch(url, { method: "HEAD" });
+      if (!res.ok) return FALLBACK;
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.startsWith("image/")) return FALLBACK;
+
+      return url;
+    } catch {
+      return FALLBACK;
+    }
+  }
+
   // ----- Search -----
   const handleSearch = useCallback(async () => {
     if (!activeSource || !query.trim()) return;
@@ -119,6 +142,10 @@ export default function BrowsePage() {
           .replace(/\sdata-(?:src|lazy-src|original)\s*=\s*(['"])(.*?)\1/gi, (_, quote, val) => ` src=${quote}${val}${quote} data-processed="true"`);
 
         const parsed = adapter.parseMangaPage(processedHtml);
+
+        // Validate cover URL
+        parsed.coverUrl = await validateCoverUrl(parsed.coverUrl);
+
         setMangaData(parsed);
         setView("detail");
       } catch (err) {
@@ -157,11 +184,13 @@ export default function BrowsePage() {
       });
 
       // Save manga to DB
+      const validatedCover = await validateCoverUrl(mangaData.coverUrl);
+      mangaData.coverUrl = validatedCover; // keep in sync
       await db.manga.put({
         id: mangaData.id,
         sourceId: "scrape",
         title: mangaData.title,
-        coverUrl: mangaData.coverUrl,
+        coverUrl: validatedCover,
         author: mangaData.author,
         artist: mangaData.artist,
         status: mangaData.status,
