@@ -1,8 +1,9 @@
 "use client"
 
 import { use, useEffect, useState } from 'react'
-import { mockSource } from '~/services/mock-source'
 import { toggleInLibrary, isInLibrary } from '~/db/library'
+import { sourceRegistry } from '~/services/sources'
+import { db } from '~/db/db'
 import type { Manga, Chapter } from '~/types'
 import Link from 'next/link'
 import { ArrowLeft, Library, Check, ChevronRight } from 'lucide-react'
@@ -12,17 +13,52 @@ export default function MangaDetailsPage({ params }: { params: Promise<{ id: str
   const [manga, setManga] = useState<Manga | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [inLib, setInLib] = useState(false)
+  const [loading, setLoading] = useState(true)
+  // Track source type for reader navigation
+  const [sourceType, setSourceType] = useState<"api" | "scrape">("api")
 
   useEffect(() => {
-    Promise.all([
-      mockSource.getMangaDetails(id),
-      mockSource.getChapters(id),
-      isInLibrary(id)
-    ]).then(([m, c, l]) => {
-      setManga(m)
-      setChapters(c)
-      setInLib(l)
-    })
+    // Parse composite id (format: "sourceId:mangaId", scrape id: "scrape:src-1:abc123")
+    const [sourceId, ...rest] = id.split(':')
+    const mangaId = rest.join(':')
+    const provider = sourceRegistry.get(sourceId)
+
+    if (!provider || !mangaId) {
+      setLoading(false)
+      return
+    }
+
+    if (sourceId === 'scrape') {
+      setSourceType('scrape')
+      setLoading(true)
+      Promise.all([
+        db.manga.get(id),
+        db.chapters.where('mangaId').equals(id).toArray(),
+        isInLibrary(id),
+      ]).then(([m, c, l]) => {
+        setManga((m as Manga) || null)
+        setChapters(c as Chapter[])
+        setInLib(l)
+        setLoading(false)
+      }).catch(() => {
+        setLoading(false)
+      })
+    } else {
+      setSourceType('api')
+      setLoading(true)
+      Promise.all([
+        provider.getMangaDetails(mangaId),
+        provider.getChapters(mangaId),
+        isInLibrary(id),
+      ]).then(([m, c, l]) => {
+        setManga(m)
+        setChapters(c)
+        setInLib(l)
+        setLoading(false)
+      }).catch(() => {
+        setLoading(false)
+      })
+    }
   }, [id])
 
   const handleToggleLibrary = async () => {
@@ -31,10 +67,24 @@ export default function MangaDetailsPage({ params }: { params: Promise<{ id: str
     setInLib(isNowInLib)
   }
 
-  if (!manga) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!manga) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4">
+        <p className="text-muted-foreground">Manga not found</p>
+        <button
+          onClick={() => window.history.back()}
+          className="text-sm text-primary hover:underline"
+        >
+          Go back
+        </button>
       </div>
     )
   }
