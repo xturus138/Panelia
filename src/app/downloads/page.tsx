@@ -6,7 +6,7 @@ import { Download, Trash2, ChevronRight, FileText } from 'lucide-react'
 
 export default function DownloadsPage() {
   const downloadedChapters = useLiveQuery(() =>
-    db.downloadedChapters.orderBy('downloadedAt').reverse().toArray()
+    db.downloadedChapters.toArray()
   )
 
   // Get manga info for each downloaded chapter
