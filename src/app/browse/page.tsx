@@ -1,98 +1,123 @@
-'use client';
+'use client'
 
-import { useCallback, useEffect, useState } from 'react';
-import { extensionService } from '~/services/extensions';
-import { sourceRegistry } from '~/services/sources';
-import { MangaCard } from '~/components/library/MangaCard';
-import type { Manga, Source } from '~/types';
+import { useCallback, useEffect, useState } from 'react'
+import { extensionService } from '~/services/extensions'
+import { sourceRegistry } from '~/services/sources'
+import { MangaCard } from '~/components/library/MangaCard'
+import { Search } from 'lucide-react'
+import type { Manga, Source } from '~/types'
 
 export default function BrowsePage() {
-  const [sources, setSources] = useState<Source[]>([]);
-  const [activeSource, setActiveSource] = useState<Source | null>(null);
-  const [manga, setManga] = useState<Manga[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [sources, setSources] = useState<Source[]>([])
+  const [activeSource, setActiveSource] = useState<Source | null>(null)
+  const [manga, setManga] = useState<Manga[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const loadSources = useCallback(async () => {
     try {
-      setLoading(true);
-      const data = await extensionService.getSources();
-      setSources(data);
+      setLoading(true)
+      const data = await extensionService.getSources()
+      setSources(data)
       if (data.length > 0) {
-        setActiveSource(data[0]);
+        setActiveSource(data[0])
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load sources');
+      setError(err instanceof Error ? err.message : 'Failed to load sources')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   const loadManga = useCallback(async () => {
-    if (!activeSource) return;
-
+    if (!activeSource) return
     try {
-      setLoading(true);
-      const provider = sourceRegistry.get(activeSource.id);
-      const data = await provider.getPopular(0);
-      setManga(data);
+      setLoading(true)
+      const provider = sourceRegistry.get(activeSource.id)
+      const data = await provider.getPopular(0)
+      setManga(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load manga');
+      setError(err instanceof Error ? err.message : 'Failed to load manga')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [activeSource]);
+  }, [activeSource])
 
   useEffect(() => {
-    loadSources();
-  }, [loadSources]);
+    loadSources()
+  }, [loadSources])
 
   useEffect(() => {
     if (activeSource) {
-      loadManga();
+      loadManga()
     }
-  }, [activeSource, loadManga]);
+  }, [activeSource, loadManga])
 
   if (loading && sources.length === 0) {
-    return <div className="p-4">Loading sources...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground">Loading sources...</p>
+      </div>
+    )
   }
 
   if (error) {
-    return <div className="p-4 text-red-500">{error}</div>;
+    return (
+      <div className="px-4 py-6">
+        <p className="text-destructive text-center">{error}</p>
+      </div>
+    )
   }
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Browse</h1>
-
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold mb-2">Sources</h2>
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {sources.map(source => (
-            <button
-              key={source.id}
-              onClick={() => setActiveSource(source)}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                activeSource?.id === source.id
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700'
-              }`}
-            >
-              {source.name}
-            </button>
-          ))}
-        </div>
+    <div className="px-4 pt-6 pb-4">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-[28px] font-bold text-foreground leading-tight">Browse</h1>
+        <p className="text-[13px] text-muted-foreground mt-1">
+          Discover new manga to read
+        </p>
       </div>
 
+      {/* Search Bar */}
+      <div className="bg-secondary rounded-xl px-4 py-3 flex items-center gap-3 mb-6">
+        <Search className="w-4 h-4 text-muted-foreground" />
+        <span className="text-[15px] text-muted-foreground">Search manga...</span>
+      </div>
+
+      {/* Source Selector */}
+      {sources.length > 0 && (
+        <div className="mb-6">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+            {sources.map(source => (
+              <button
+                key={source.id}
+                onClick={() => setActiveSource(source)}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-150 ${
+                  activeSource?.id === source.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                }`}
+              >
+                {source.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manga Grid */}
       {loading ? (
-        <div className="p-4">Loading manga...</div>
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <p className="text-muted-foreground">Loading manga...</p>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4">
           {manga.map(m => (
             <MangaCard key={m.id} manga={m} />
           ))}
         </div>
       )}
     </div>
-  );
+  )
 }

@@ -1,13 +1,12 @@
 "use client";
 
 import { use, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { mockSource } from '~/services/mock-source';
 import type { Page } from '~/types';
 
 export default function ReaderPage({ params }: { params: Promise<{ chapterId: string }> }) {
   const { chapterId } = use(params);
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   const [pages, setPages] = useState<Page[]>([]);

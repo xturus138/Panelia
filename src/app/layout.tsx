@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "~/components/layout/ThemeProvider";
 import { BottomNav } from "~/components/layout/BottomNav";
 import { ServiceWorkerRegistrar } from "~/components/layout/ServiceWorkerRegistrar";
 
-const inter = Inter({ subsets: ["latin"] });
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "Panelia",
@@ -20,15 +24,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={plusJakarta.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
           <ServiceWorkerRegistrar />
-          <main className="pb-16">{children}</main>
+          <main className="pb-24">{children}</main>
           <BottomNav />
         </ThemeProvider>
       </body>
