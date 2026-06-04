@@ -1,69 +1,141 @@
 "use client"
 
-import { use, useEffect, useState } from 'react'
+import { use, useEffect, useState, useCallback } from 'react'
 import { toggleInLibrary, isInLibrary } from '~/db/library'
 import { sourceRegistry } from '~/services/sources'
 import { db } from '~/db/db'
 import type { Manga, Chapter } from '~/types'
-import Link from 'next/link'
 import { ArrowLeft, Library, Check, ChevronRight } from 'lucide-react'
+import { useReaderStore } from '~/stores/reader'
 
 export default function MangaDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+  const { id: rawId } = use(params)
+  const id = decodeURIComponent(rawId)
   const [manga, setManga] = useState<Manga | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [inLib, setInLib] = useState(false)
   const [loading, setLoading] = useState(true)
-  // Track source type for reader navigation
+  const [readerUrl, setReaderUrl] = useState<string | null>(null)
+  const setReaderOpen = useReaderStore((s) => s.setReaderOpen)
   const [sourceType, setSourceType] = useState<"api" | "scrape">("api")
 
-  useEffect(() => {
-    // Parse composite id (format: "sourceId:mangaId", scrape id: "scrape:src-1:abc123")
-    const [sourceId, ...rest] = id.split(':')
-    const mangaId = rest.join(':')
-    const provider = sourceRegistry.get(sourceId)
+  const openReader = useCallback((chapterId: string) => {
+    setReaderUrl(`/reader/${encodeURIComponent(chapterId)}?manga=${encodeURIComponent(id)}`);
+    setReaderOpen(true);
+  }, [id, setReaderOpen]);
 
-    if (!provider || !mangaId) {
-      setLoading(false)
-      return
+  const closeReader = useCallback(() => {
+    setReaderUrl(null);
+    setReaderOpen(false);
+  }, [setReaderOpen]);
+
+  useEffect(() => {
+    if (!readerUrl) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [readerUrl]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'panelia:close-reader') {
+        closeReader();
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [closeReader]);
+
+  const handleReaderBackdrop = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) closeReader();
+  }, [closeReader]);
+
+  const handleReaderEscape = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') closeReader();
+  }, [closeReader]);
+
+  useEffect(() => {
+    // Parse composite id
+    // API sources:   "mangadex:abc123"  → sourceId="mangadex", mangaId="abc123"
+    // Scrape sources:"scrape:preset-komiku:irnihh" → sourceId="scrape:preset-komiku", mangaId="irnihh"
+    const parts = id.split(':')
+    let sourceId: string, mangaId: string
+    if (parts[0] === 'scrape') {
+      sourceId = parts[0] + ':' + parts[1]   // "scrape:preset-komiku"
+      mangaId = parts.slice(2).join(':')     // "irnihh"
+    } else {
+      sourceId = parts[0]                     // "mangadex"
+      mangaId = parts.slice(1).join(':')      // "abc123"
     }
 
-    if (sourceId === 'scrape') {
+    // For scrape sources, we can load from DB without a live provider,
+    // but try to rehydrate anyway for potential future features.
+    let provider = sourceRegistry.getOrRehydrate(sourceId);
+
+    console.log('MangaDetailsPage id:', id, 'sourceId:', sourceId, 'mangaId:', mangaId, 'provider:', !!provider);
+
+    if (sourceId.startsWith('scrape')) {
+      // Rehydrate user-defined sources if missing
+      if (!provider) {
+        db.scrapeSources.get(parts[1]).then(savedSource => {
+          if (savedSource) {
+            sourceRegistry.registerScrapeSource(savedSource.id, savedSource.config, savedSource.baseUrl);
+          }
+        });
+      }
       setSourceType('scrape')
       setLoading(true)
+      console.log('Looking up scrape manga in DB by id:', id);
       Promise.all([
         db.manga.get(id),
         db.chapters.where('mangaId').equals(id).toArray(),
         isInLibrary(id),
       ]).then(([m, c, l]) => {
+        console.log('Scrape DB results - Manga:', !!m, 'Chapters:', c.length, 'InLib:', l);
+        if (!m) {
+          db.manga.toArray().then(all => {
+            console.log('All manga in DB:', all.map(m => ({ id: m.id, title: m.title })));
+          });
+        }
         setManga((m as Manga) || null)
         setChapters(c as Chapter[])
         setInLib(l)
         setLoading(false)
-      }).catch(() => {
+      }).catch((err) => {
+        console.error('Error loading scrape manga:', err);
         setLoading(false)
       })
-    } else {
-      setSourceType('api')
-      setLoading(true)
-      Promise.all([
-        provider.getMangaDetails(mangaId),
-        provider.getChapters(mangaId),
-        isInLibrary(id),
-      ]).then(([m, c, l]) => {
-        setManga(m)
-        setChapters(c)
-        setInLib(l)
-        setLoading(false)
-      }).catch(() => {
-        setLoading(false)
-      })
+      return
     }
+
+    if (!provider || !mangaId) {
+      console.log('Provider or mangaId missing. Provider:', !!provider);
+      setLoading(false)
+      return
+    }
+
+    setSourceType('api')
+    setLoading(true)
+    Promise.all([
+      provider.getMangaDetails(mangaId),
+      provider.getChapters(mangaId),
+      isInLibrary(id),
+    ]).then(([m, c, l]) => {
+      setManga({ ...m, id, sourceId })
+      setChapters(c.map((ch) => ({ ...ch, mangaId: id })))
+      setInLib(l)
+      setLoading(false)
+    }).catch(() => {
+      setLoading(false)
+    })
   }, [id])
 
   const handleToggleLibrary = async () => {
     if (!manga) return
-    const isNowInLib = await toggleInLibrary(manga)
+    const isNowInLib = await toggleInLibrary(manga, chapters)
     setInLib(isNowInLib)
   }
 
@@ -175,10 +247,11 @@ export default function MangaDetailsPage({ params }: { params: Promise<{ id: str
 
         <div className="flex flex-col gap-2">
           {chapters.map(ch => (
-            <Link
+            <button
               key={ch.id}
-              href={`/reader/${ch.id}?manga=${manga.id}`}
-              className="bg-card rounded-xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow"
+              type="button"
+              onClick={() => openReader(ch.id)}
+              className="bg-card rounded-xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow w-full text-left"
             >
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-[14px] text-card-foreground truncate">
@@ -189,10 +262,44 @@ export default function MangaDetailsPage({ params }: { params: Promise<{ id: str
                 )}
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0 ml-2" />
-            </Link>
+            </button>
           ))}
         </div>
       </div>
+
+      {readerUrl && (
+        <div
+          className="fixed inset-0 z-[200] bg-black"
+          onClick={handleReaderBackdrop}
+          onKeyDown={handleReaderEscape}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Reader - ${manga?.title || 'Manga'}`}
+        >
+          <div className="absolute inset-0 flex flex-col bg-black">
+            <div className="flex items-center justify-between px-3 py-2.5 bg-black/85 text-white border-b border-white/10">
+              <div className="min-w-0">
+                <p className="text-[12px] text-white/60">Reader</p>
+                <p className="text-[14px] font-medium truncate">{manga?.title || 'Manga'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeReader}
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[12px]"
+              >
+                Close
+              </button>
+            </div>
+            <iframe
+              title={`Reader - ${manga?.title || 'Manga'}`}
+              src={readerUrl}
+              className="flex-1 w-full border-0"
+              allow="fullscreen"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

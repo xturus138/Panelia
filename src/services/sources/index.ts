@@ -3,6 +3,7 @@ import { mangadexProvider } from './mangadex';
 import { comickProvider } from './comick';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
 import type { SiteConfig } from '~/services/scrape/types';
+import { getPreset, presetToScrapeSource } from '~/services/scrape/presets';
 
 export interface SourceProviderEntry {
   id: string;
@@ -46,6 +47,31 @@ class SourceRegistry {
 
   get(id: string): SourceProvider | null {
     return this.providers.get(id) ?? null;
+  }
+
+  /**
+   * Get a scrape adapter, auto-rehydrating from presets if not yet registered.
+   * For DB-saved sources, call rehydrateFromDb() or ensureScrapeSource() instead.
+   */
+  getOrRehydrate(id: string): SourceProvider | null {
+    const existing = this.providers.get(id);
+    if (existing) return existing;
+
+    // Try to rehydrate from preset (e.g. "scrape:preset-komiku" → preset "komiku")
+    if (id.startsWith(SCRAPE_PREFIX)) {
+      const sourceId = id.slice(SCRAPE_PREFIX.length);
+      if (sourceId.startsWith('preset-')) {
+        const presetName = sourceId.slice('preset-'.length);
+        const preset = getPreset(presetName);
+        if (preset) {
+          const scrapeSource = presetToScrapeSource(preset);
+          this.registerScrapeSource(scrapeSource.id, scrapeSource.config, scrapeSource.baseUrl);
+          return this.providers.get(id) ?? null;
+        }
+      }
+    }
+
+    return null;
   }
 
   has(id: string): boolean {

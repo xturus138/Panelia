@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Book, Compass, SquareArrowDown, Settings } from "lucide-react"
 import { cn } from "~/lib/utils"
+import { useReaderStore } from "~/stores/reader"
 
 const navItems = [
   { href: "/library", label: "Library", icon: Book },
@@ -14,6 +15,9 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const isReaderOpen = useReaderStore((s) => s.isReaderOpen)
+
+  if (pathname.startsWith('/reader') || isReaderOpen) return null
 
   return (
     <nav className="fixed bottom-4 left-4 right-4 z-50 max-w-lg mx-auto">

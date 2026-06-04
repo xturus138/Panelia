@@ -1,20 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Save,
   Loader2,
   AlertCircle,
+  Wand2,
   Search as SearchIcon,
   BookOpen,
-  Library,
+  Settings2,
   Check,
 } from "lucide-react";
 import { ScrapeAdapter } from "~/services/scrape/scrapeAdapter";
+import { useReaderStore } from "~/stores/reader";
+import { autoDetectConfig } from "~/services/scrape/autoDetect";
 import { getBuiltinPresets, presetToScrapeSource } from "~/services/scrape/presets";
-import type { ParsedMangaPage, SearchResult, ScrapeSource } from "~/services/scrape/types";
+import { setScrapeSession } from "~/services/scrape/sessionStore";
+import type { SiteConfig, ParsedMangaPage, SearchResult, ScrapeSource } from "~/services/scrape/types";
+import { useToast } from "~/hooks/useToast";
 
 type ViewMode = "sources" | "search" | "detail";
 
@@ -25,8 +29,19 @@ async function validateCoverUrl(url: string): Promise<string> {
   if (!url) return COVER_FALLBACK;
   if (NOISE_PATTERNS.some((p) => p.test(url))) return COVER_FALLBACK;
 
+  // Route the validation through the local proxy to avoid CORS issues
+  // and spoof the Referer header that some manga sites require.
   try {
-    const res = await fetch(url, { method: "HEAD" });
+    let origin = "";
+    try {
+      origin = new URL(url).origin + "/";
+    } catch {
+      // invalid url
+      return COVER_FALLBACK;
+    }
+
+    const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}&referer=${encodeURIComponent(origin)}`;
+    const res = await fetch(proxyUrl, { method: "HEAD" });
     if (!res.ok) return COVER_FALLBACK;
 
     const contentType = res.headers.get("content-type") || "";
@@ -43,7 +58,10 @@ export default function BrowsePage() {
   const [sources, setSources] = useState<ScrapeSource[]>([]);
   const [activeSource, setActiveSource] = useState<ScrapeSource | null>(null);
   const [view, setView] = useState<ViewMode>("sources");
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [configJson, setConfigJson] = useState<string>("");
+  const [showConfig, setShowConfig] = useState(false);
+  const configDirty = useRef(false);
+  const toast = useToast();
 
   // Search state
   const [query, setQuery] = useState("");
@@ -55,6 +73,12 @@ export default function BrowsePage() {
   const [mangaData, setMangaData] = useState<ParsedMangaPage | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [savedInSession, setSavedInSession] = useState(false);
+  const [readerUrl, setReaderUrl] = useState<string | null>(null);
+  const setReaderOpen = useReaderStore((s) => s.setReaderOpen);
+  const closeReader = useCallback(() => {
+    setReaderUrl(null);
+    setReaderOpen(false);
+  }, [setReaderOpen]);
 
   // Load presets on mount
   useEffect(() => {
@@ -62,7 +86,56 @@ export default function BrowsePage() {
     setSources(loaded);
   }, []);
 
-  // When source changes, reset view and state
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'panelia:close-reader') {
+        closeReader();
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [closeReader]);
+
+  useEffect(() => {
+    if (!readerUrl) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [readerUrl]);
+
+  const openReader = useCallback((chapterId: string, mangaId: string) => {
+    setReaderUrl(`/reader/${encodeURIComponent(chapterId)}?manga=${encodeURIComponent(mangaId)}`);
+    setReaderOpen(true);
+  }, [setReaderOpen]);
+
+  const handleReaderBackdrop = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      closeReader();
+    }
+  }, [closeReader]);
+
+  const handleReaderFrameClick = useCallback((e: React.MouseEvent<HTMLIFrameElement>) => {
+    e.stopPropagation();
+  }, []);
+
+  const handleReaderEscape = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      closeReader();
+    }
+  }, [closeReader]);
+
+  const handleReaderClose = useCallback(() => {
+    closeReader();
+  }, [closeReader]);
+
+  const readerTitle = mangaData?.title ? `Reader ${mangaData.title}` : 'Reader';
+
+  // When source changes, reset view and set default config
   useEffect(() => {
     if (!activeSource) {
       setView("sources");
@@ -72,35 +145,76 @@ export default function BrowsePage() {
     setResults([]);
     setMangaData(null);
     setQuery("");
+    setConfigJson(JSON.stringify(activeSource.config, null, 2));
+    configDirty.current = false;
     setSavedInSession(false);
+
+    // Auto-load popular manga when source is selected
+    const autoLoad = async () => {
+      setSearchLoading(true);
+      const loading = toast.loading(`Loading popular from ${activeSource.name}...`);
+      try {
+        const adapter = new ScrapeAdapter(activeSource.id, activeSource.config, activeSource.baseUrl);
+        // Try popularPage first, fallback to empty search
+        const popularResults = await adapter.getPopularResults();
+        // Dedupe by URL since the same manga can appear in multiple sections
+        const seen = new Set<string>();
+        const deduped = popularResults.filter((r) => {
+          if (seen.has(r.url)) return false;
+          seen.add(r.url);
+          return true;
+        });
+        setResults(deduped);
+        loading.dismiss();
+      } catch (err) {
+        console.error("Auto-load failed:", err);
+        loading.dismiss();
+        toast.error(`Auto-load failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      setSearchLoading(false);
+    };
+    autoLoad();
   }, [activeSource]);
 
-  // Build adapter from built-in source config and URL
+  // Build adapter from current config and URL
   const getAdapter = useCallback(
     (url: string): ScrapeAdapter => {
       if (!activeSource) throw new Error("No source selected");
-      return new ScrapeAdapter(activeSource.id, activeSource.config, url);
+      let config: SiteConfig;
+      try {
+        config = JSON.parse(configJson);
+      } catch {
+        throw new Error("Invalid config JSON");
+      }
+      return new ScrapeAdapter(activeSource.id, config, url);
     },
-    [activeSource]
+    [activeSource, configJson]
   );
 
   // ----- Search -----
   const handleSearch = useCallback(async () => {
     if (!activeSource || !query.trim()) return;
     setSearchLoading(true);
-    setSaveStatus(null);
+    const loading = toast.loading("Searching...");
     try {
       const adapter = getAdapter(activeSource.baseUrl);
       const searchResults = await adapter.searchManga(query.trim());
-      setResults(searchResults);
+      // Dedupe by URL
+      const seen = new Set<string>();
+      const deduped = searchResults.filter((r) => {
+        if (seen.has(r.url)) return false;
+        seen.add(r.url);
+        return true;
+      });
+      setResults(deduped);
       setView("search");
-      if (searchResults.length === 0) {
-        setSaveStatus("No results found");
-        setTimeout(() => setSaveStatus(null), 3000);
+      loading.dismiss();
+      if (deduped.length === 0) {
+        toast.error("No results found", 3000);
       }
     } catch (err) {
-      setSaveStatus(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
-      setTimeout(() => setSaveStatus(null), 5000);
+      loading.dismiss();
+      toast.error(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     setSearchLoading(false);
   }, [activeSource, query, getAdapter]);
@@ -110,9 +224,9 @@ export default function BrowsePage() {
     async (result: SearchResult) => {
       if (!activeSource) return;
       setDetailLoading(true);
-      setSaveStatus(null);
       setSavedInSession(false);
       setCurrentUrl(result.url);
+      const loading = toast.loading("Loading manga details...");
       try {
         const res = await fetch(`/api/proxy?url=${encodeURIComponent(result.url)}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -129,23 +243,56 @@ export default function BrowsePage() {
         // Validate cover URL
         parsed.coverUrl = await validateCoverUrl(parsed.coverUrl);
 
+        // Register a live-read session so the reader can resolve chapter URLs
+        // and rebuild the adapter on-the-fly without saving to the library.
+        const chapterUrls: Record<string, string> = {};
+        for (const ch of parsed.chapters) {
+          chapterUrls[ch.id] = ch.url;
+        }
+        let liveConfig: SiteConfig;
+        try {
+          liveConfig = JSON.parse(configJson);
+        } catch {
+          liveConfig = activeSource.config;
+        }
+        setScrapeSession(
+          activeSource.id,
+          liveConfig,
+          activeSource.baseUrl,
+          chapterUrls,
+          parsed.id,
+          parsed.title,
+          parsed.coverUrl,
+          result.url,
+          parsed.chapters.map((ch) => ({ id: ch.id, title: ch.title, chapterNumber: ch.chapterNumber }))
+        );
+
         setMangaData(parsed);
         setView("detail");
+        loading.dismiss();
       } catch (err) {
-        setSaveStatus(`Failed to load: ${err instanceof Error ? err.message : String(err)}`);
-        setTimeout(() => setSaveStatus(null), 5000);
+        loading.dismiss();
+        toast.error(`Failed to load: ${err instanceof Error ? err.message : String(err)}`);
       }
       setDetailLoading(false);
     },
-    [activeSource, getAdapter]
+    [activeSource, getAdapter, configJson]
   );
 
   // ----- Save to library -----
   const handleSave = useCallback(async () => {
     if (!activeSource || !mangaData || !currentUrl) return;
-    setSaveStatus(null);
+    const loading = toast.loading("Saving to library...");
     try {
-      const config = activeSource.config;
+      let config: SiteConfig;
+      try {
+        config = JSON.parse(configJson);
+      } catch {
+        loading.dismiss();
+        toast.error("Invalid config JSON");
+        return;
+      }
+
       const { db } = await import("~/db/db");
       const { sourceRegistry } = await import("~/services/sources");
 
@@ -202,12 +349,26 @@ export default function BrowsePage() {
       sourceRegistry.registerScrapeSource(activeSource.id, config, currentUrl);
 
       setSavedInSession(true);
-      setSaveStatus(`Saved "${mangaData.title}" with ${chapterRows.length} chapters!`);
+      loading.dismiss();
+      toast.success(`Saved "${mangaData.title}" with ${chapterRows.length} chapters!`);
     } catch (err) {
-      setSaveStatus(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      loading.dismiss();
+      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     }
-    setTimeout(() => setSaveStatus(null), 5000);
-  }, [activeSource, mangaData, currentUrl]);
+  }, [activeSource, mangaData, currentUrl, configJson]);
+
+  // ----- Re-detect config for current detail page -----
+  const handleRedetect = useCallback(async () => {
+    if (!currentUrl) return;
+    try {
+      const res = await fetch(`/api/proxy?url=${encodeURIComponent(currentUrl)}`);
+      if (!res.ok) return;
+      const html = await res.text();
+      const config = autoDetectConfig(html, currentUrl);
+      setConfigJson(JSON.stringify(config, null, 2));
+      configDirty.current = false;
+    } catch {}
+  }, [currentUrl]);
 
   // ----- Render -----
   return (
@@ -228,6 +389,13 @@ export default function BrowsePage() {
             {src.name}
           </button>
         ))}
+        <button
+          disabled
+          className="px-3 py-2 rounded-t-lg text-xs text-muted-foreground/40 italic"
+          title="More sources coming soon"
+        >
+          + Add source
+        </button>
       </div>
 
       {/* Search Bar (only when source selected, not in detail view) */}
@@ -258,19 +426,51 @@ export default function BrowsePage() {
               {searchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
             </button>
           </form>
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className={`p-2.5 rounded-xl ${showConfig ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            title="Edit scrape config"
+          >
+            <Settings2 className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* Status bar */}
-      {saveStatus && (
-        <div
-          className={`px-4 py-2 text-sm border-b ${
-            saveStatus.startsWith("Failed") || saveStatus.startsWith("Search failed")
-              ? "bg-destructive/10 border-destructive/20 text-destructive"
-              : "bg-primary/10 border-primary/20 text-primary"
-          }`}
-        >
-          {saveStatus}
+      {/* Config Panel */}
+      {showConfig && (
+        <div className="p-3 bg-card border-b border-border">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold">Site Config (JSON)</h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRedetect}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+                type="button"
+              >
+                <Wand2 className="w-3 h-3" />
+                Auto-detect
+              </button>
+              <button
+                onClick={() => setShowConfig(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+                type="button"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+          <textarea
+            value={configJson}
+            onChange={(e) => {
+              setConfigJson(e.target.value);
+              configDirty.current = true;
+            }}
+            placeholder='{"name":"...","baseUrl":"...","mangaPage":{...},"chapterPage":{...}}'
+            className="w-full h-40 px-3 py-2 rounded-lg bg-background text-xs font-mono border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            CSS selectors control how data is extracted. Edit and re-search or re-enter the detail page to apply changes.
+          </p>
         </div>
       )}
 
@@ -444,16 +644,17 @@ export default function BrowsePage() {
                   </h2>
                   <div className="flex flex-col gap-1.5">
                     {mangaData.chapters.map((ch) => (
-                      <Link
+                      <button
                         key={ch.id}
-                        href={`/reader/${ch.id}?manga=${mangaData.id}`}
-                        className="block bg-card rounded-lg px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        type="button"
+                        onClick={() => openReader(ch.id, mangaData.id)}
+                        className="block w-full text-left bg-card rounded-lg px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                       >
                         <span className="font-medium">
                           Chapter {ch.chapterNumber}
                           {ch.title ? `: ${ch.title}` : ""}
                         </span>
-                      </Link>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -469,6 +670,40 @@ export default function BrowsePage() {
           </div>
         )}
       </div>
+
+      {readerUrl && (
+        <div
+          className="fixed inset-0 z-[200] bg-black"
+          onClick={handleReaderBackdrop}
+          onKeyDown={handleReaderEscape}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-label={readerTitle}
+        >
+          <div className="absolute inset-0 flex flex-col bg-black">
+            <div className="flex items-center justify-between px-3 py-2.5 bg-black/85 text-white border-b border-white/10">
+              <div className="min-w-0">
+                <p className="text-[12px] text-white/60">Reader</p>
+                <p className="text-[14px] font-medium truncate">{mangaData?.title || 'Manga'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleReaderClose}
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[12px]"
+              >
+                Close
+              </button>
+            </div>
+            <iframe
+              title={readerTitle}
+              src={readerUrl}
+              className="flex-1 w-full border-0"
+              allow="fullscreen"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

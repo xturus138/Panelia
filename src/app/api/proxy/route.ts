@@ -35,7 +35,9 @@ function setSessionCookie(response: NextResponse, sessionId: string): void {
 }
 
 export async function GET(request: Request) {
-  const url = new URL(request.url).searchParams.get('url');
+  const searchParams = new URL(request.url).searchParams;
+  const url = searchParams.get('url');
+  const referer = searchParams.get('referer');
   if (!url) return NextResponse.json({ error: 'missing url' }, { status: 400 });
 
   const sessionId = getSessionId(request);
@@ -58,12 +60,18 @@ export async function GET(request: Request) {
   sessions.get(sessionId)!.add(target.hostname);
 
   try {
+    const fetchHeaders: HeadersInit = {
+      'User-Agent': PROXY_UA,
+      'Accept': 'application/json, text/html, image/avif, image/webp, image/apng, image/svg+xml, image/*, */*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+    };
+
+    if (referer) {
+      fetchHeaders['Referer'] = referer;
+    }
+
     const upstream = await fetch(url, {
-      headers: {
-        'User-Agent': PROXY_UA,
-        'Accept': 'application/json, text/html, */*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+      headers: fetchHeaders,
       signal: AbortSignal.timeout(20000),
     });
 

@@ -1,6 +1,6 @@
 import { Source } from '../types';
 
-const KEIYOSHI_INDEX_URL = 'https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json';
+const KEIYOSHI_INDEX_URL = 'https://raw.githubusercontent.com/yuzono/manga-repo/repo/index.min.json';
 const CACHE_KEY = 'keiyoushi-index';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -82,6 +82,10 @@ export class ExtensionService {
     } catch {
       // Ignore storage errors
     }
+  }
+
+  clearCache(): void {
+    localStorage.removeItem(CACHE_KEY);
   }
 
   async getSources(): Promise<Source[]> {

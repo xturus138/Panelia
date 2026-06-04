@@ -2,12 +2,54 @@
 
 import { useLibrary } from '~/hooks/useLibrary'
 import { MangaCard } from '~/components/library/MangaCard'
-import { Search } from 'lucide-react'
+import { Search, RefreshCw, Loader2 } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '~/db/db'
+import { useState, useCallback } from 'react'
+import { syncChapters } from '~/db/sync'
+import { useToast } from '~/hooks/useToast'
 
 export default function LibraryPage() {
   const { libraryEntries, mangaList } = useLibrary()
+  const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set())
+  const [refreshAllLoading, setRefreshAllLoading] = useState(false)
+  const toast = useToast()
+
+  const handleRefresh = useCallback(async (mangaId: string, silent = false) => {
+    setRefreshingIds(prev => new Set(prev).add(mangaId))
+    try {
+      await syncChapters(mangaId)
+      if (!silent) toast.success('Chapters updated')
+    } catch (err) {
+      console.error(`Failed to sync ${mangaId}:`, err)
+      if (!silent) toast.error('Failed to sync chapters')
+    } finally {
+      setRefreshingIds(prev => {
+        const next = new Set(prev)
+        next.delete(mangaId)
+        return next
+      })
+    }
+  }, [toast])
+
+  const handleRefreshAll = useCallback(async () => {
+    if (!mangaList || mangaList.length === 0) return
+    setRefreshAllLoading(true)
+    const t = toast.loading(`Refreshing ${mangaList.length} manga...`)
+    try {
+      // Sync in parallel with small limit or sequential? sequential for now to avoid rate limits
+      for (const manga of mangaList) {
+        await handleRefresh(manga.id, true)
+      }
+      t.dismiss()
+      toast.success('All chapters updated')
+    } catch (err) {
+      t.dismiss()
+      toast.error('Some updates failed')
+    } finally {
+      setRefreshAllLoading(false)
+    }
+  }, [mangaList, handleRefresh, toast])
 
   // Get chapter counts for each manga
   const chapterCounts = useLiveQuery(async () => {
@@ -38,9 +80,23 @@ export default function LibraryPage() {
             {mangaList.length} manga in collection
           </p>
         </div>
-        <button className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
-          <Search className="w-4 h-4 text-muted-foreground" />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleRefreshAll}
+            disabled={refreshAllLoading}
+            className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center disabled:opacity-50"
+            title="Refresh All"
+          >
+            {refreshAllLoading ? (
+              <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+          <button className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+            <Search className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -59,12 +115,14 @@ export default function LibraryPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
           {mangaList.map(manga => (
             <MangaCard
               key={manga.id}
               manga={manga}
               chapterCount={chapterCounts?.[manga.id]}
+              onRefresh={handleRefresh}
+              refreshing={refreshingIds.has(manga.id)}
             />
           ))}
         </div>

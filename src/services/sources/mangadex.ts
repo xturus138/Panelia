@@ -46,14 +46,20 @@ interface MangaDexPageResponse {
 
 export class MangaDexProvider implements SourceProvider {
   private async fetch<T>(endpoint: string): Promise<T> {
-    const response = await fetch(`${MANGADEX_API}${endpoint}`, {
-      headers: {
-        'User-Agent': 'Panelia/1.0',
-      },
-    });
+    const response = await fetch(
+      `/api/proxy?url=${encodeURIComponent(`${MANGADEX_API}${endpoint}`)}`
+    );
 
     if (!response.ok) {
-      throw new Error(`MangaDex API error: ${response.statusText}`);
+      let errMsg = `MangaDex API error: ${response.status}`;
+      try {
+        const body = await response.json();
+        if (body.detail) errMsg += ` (${body.detail})`;
+        else if (body.error) errMsg += ` (${body.error})`;
+      } catch {
+        // Fallback to generic statusText
+      }
+      throw new Error(errMsg);
     }
 
     return response.json();

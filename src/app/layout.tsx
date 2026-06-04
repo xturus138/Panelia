@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "~/components/layout/ThemeProvider";
 import { BottomNav } from "~/components/layout/BottomNav";
 import { ServiceWorkerRegistrar } from "~/components/layout/ServiceWorkerRegistrar";
+import { ToastContainer } from "~/components/ui/ToastContainer";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -34,6 +35,7 @@ export default function RootLayout({
           <ServiceWorkerRegistrar />
           <main className="pb-24">{children}</main>
           <BottomNav />
+          <ToastContainer />
         </ThemeProvider>
       </body>
     </html>
