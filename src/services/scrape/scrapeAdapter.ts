@@ -1,7 +1,15 @@
-// src/services/scrape/scrapeAdapter.ts
 import { parse as parseHtml } from 'node-html-parser';
 import type { SourceProvider, Manga, Chapter, Page } from '~/types';
-import type { SiteConfig, ScrapedManga, ScrapedChapter, ScrapedPage, ParsedMangaPage } from './types';
+import type { SiteConfig, ScrapedManga, ScrapedChapter, ScrapedPage, ParsedMangaPage, SearchResult } from './types';
+
+const MAX_LISTING_PAGES = 10;
+
+type ListingSelectors = {
+  resultItem: string;
+  resultTitle: string;
+  resultUrl: string;
+  resultCover: string;
+};
 
 export class ScrapeAdapter implements SourceProvider {
   readonly id: string;
@@ -74,12 +82,32 @@ export class ScrapeAdapter implements SourceProvider {
     const root = parseHtml(html);
     const imgs = root.querySelectorAll(this.config.chapterPage.images);
     return imgs.map((img, idx) => {
-      const src = img.getAttribute('src') || img.getAttribute('data-src') || '';
+      const src = img.getAttribute('src') || img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || '';
       return {
         index: idx,
         imageUrl: this.resolveUrl(src),
       };
     });
+  }
+
+  async searchManga(query: string): Promise<SearchResult[]> {
+    if (!this.config.searchPage) return [];
+
+    const { urlTemplate, resultItem, resultTitle, resultUrl, resultCover } = this.config.searchPage;
+    return this.fetchPaginatedListing(
+      urlTemplate,
+      { resultItem, resultTitle, resultUrl, resultCover },
+      query
+    );
+  }
+
+  async getPopularResults(): Promise<SearchResult[]> {
+    if (this.config.popularPage) {
+      const { urlTemplate, resultItem, resultTitle, resultUrl, resultCover } = this.config.popularPage;
+      return this.fetchPaginatedListing(urlTemplate, { resultItem, resultTitle, resultUrl, resultCover });
+    }
+
+    return this.searchManga('');
   }
 
   // ----- SourceProvider implementation (delegates to fetch + parse) -----
@@ -107,6 +135,76 @@ export class ScrapeAdapter implements SourceProvider {
 
   async getPages(_chapterId: string): Promise<Page[]> {
     return [];
+  }
+
+  private async fetchPaginatedListing(
+    urlTemplate: string,
+    selectors: ListingSelectors,
+    query?: string
+  ): Promise<SearchResult[]> {
+    const results: SearchResult[] = [];
+
+    if (!urlTemplate.includes('{page}')) {
+      const url = this.buildPageUrl(urlTemplate, 1, query);
+      return this.fetchListingPage(url, selectors);
+    }
+
+    for (let page = 1; page <= MAX_LISTING_PAGES; page++) {
+      const pageUrl = this.buildPageUrl(urlTemplate, page, query);
+      const pageResults = await this.fetchListingPage(pageUrl, selectors);
+      if (pageResults.length === 0) break;
+      results.push(...pageResults);
+    }
+
+    return results;
+  }
+
+  private buildPageUrl(template: string, page: number, query?: string): string {
+    let url = template.replace('{page}', String(page));
+    if (query !== undefined) {
+      url = url.replace('{query}', encodeURIComponent(query));
+    }
+    return url;
+  }
+
+  private async fetchListingPage(url: string, selectors: ListingSelectors): Promise<SearchResult[]> {
+    const res = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+    if (!res.ok) throw new Error(`Listing failed: HTTP ${res.status}`);
+    const html = await res.text();
+    return this.parseSearchResults(html, selectors);
+  }
+
+  private parseSearchResults(html: string, selectors: ListingSelectors): SearchResult[] {
+    const root = parseHtml(html);
+    const items = root.querySelectorAll(selectors.resultItem);
+
+    return items.map((item) => {
+      const titleEl = item.querySelector(selectors.resultTitle);
+      const linkEl = item.querySelector(selectors.resultUrl);
+      const coverEl = item.querySelector(selectors.resultCover);
+
+      let title = titleEl?.text?.trim() || linkEl?.text?.trim() || '';
+      if (!title && coverEl) {
+        const alt = coverEl.getAttribute('alt') || '';
+        title = alt.replace(/^(Baca|Read|Manga|Manhwa|Manhua)\s+/i, '').trim();
+      }
+      if (!title) title = 'Untitled';
+
+      const href = linkEl?.getAttribute('href') || '';
+      const url = this.resolveUrl(href);
+      let coverSrc = coverEl?.getAttribute('data-src')
+        || coverEl?.getAttribute('data-lazy-src')
+        || coverEl?.getAttribute('data-original')
+        || coverEl?.getAttribute('src')
+        || '';
+      if (/lazy\.jpg|lazy\.png|placeholder|loading\.|spinner/i.test(coverSrc)) {
+        coverSrc = '';
+      }
+      const coverUrl = this.resolveUrl(coverSrc);
+      const id = `scrape:${this.id}:${simpleHash(url)}`;
+
+      return { id, title, url, coverUrl };
+    });
   }
 
   // ----- Helpers -----

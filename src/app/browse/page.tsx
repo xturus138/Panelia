@@ -1,23 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Save,
   Loader2,
   AlertCircle,
-  Wand2,
   Search as SearchIcon,
   BookOpen,
-  Settings2,
   Library,
   Check,
 } from "lucide-react";
 import { ScrapeAdapter } from "~/services/scrape/scrapeAdapter";
-import { autoDetectConfig } from "~/services/scrape/autoDetect";
 import { getBuiltinPresets, presetToScrapeSource } from "~/services/scrape/presets";
-import type { SiteConfig, ParsedMangaPage, SearchResult, ScrapeSource } from "~/services/scrape/types";
+import type { ParsedMangaPage, SearchResult, ScrapeSource } from "~/services/scrape/types";
 
 type ViewMode = "sources" | "search" | "detail";
 
@@ -46,10 +43,7 @@ export default function BrowsePage() {
   const [sources, setSources] = useState<ScrapeSource[]>([]);
   const [activeSource, setActiveSource] = useState<ScrapeSource | null>(null);
   const [view, setView] = useState<ViewMode>("sources");
-  const [configJson, setConfigJson] = useState<string>("");
-  const [showConfig, setShowConfig] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const configDirty = useRef(false);
 
   // Search state
   const [query, setQuery] = useState("");
@@ -68,7 +62,7 @@ export default function BrowsePage() {
     setSources(loaded);
   }, []);
 
-  // When source changes, reset view and set default config
+  // When source changes, reset view and state
   useEffect(() => {
     if (!activeSource) {
       setView("sources");
@@ -78,24 +72,16 @@ export default function BrowsePage() {
     setResults([]);
     setMangaData(null);
     setQuery("");
-    setConfigJson(JSON.stringify(activeSource.config, null, 2));
-    configDirty.current = false;
     setSavedInSession(false);
   }, [activeSource]);
 
-  // Build adapter from current config and URL
+  // Build adapter from built-in source config and URL
   const getAdapter = useCallback(
     (url: string): ScrapeAdapter => {
       if (!activeSource) throw new Error("No source selected");
-      let config: SiteConfig;
-      try {
-        config = JSON.parse(configJson);
-      } catch {
-        throw new Error("Invalid config JSON");
-      }
-      return new ScrapeAdapter(activeSource.id, config, url);
+      return new ScrapeAdapter(activeSource.id, activeSource.config, url);
     },
-    [activeSource, configJson]
+    [activeSource]
   );
 
   // ----- Search -----
@@ -159,15 +145,7 @@ export default function BrowsePage() {
     if (!activeSource || !mangaData || !currentUrl) return;
     setSaveStatus(null);
     try {
-      let config: SiteConfig;
-      try {
-        config = JSON.parse(configJson);
-      } catch {
-        setSaveStatus("Invalid config JSON");
-        setTimeout(() => setSaveStatus(null), 3000);
-        return;
-      }
-
+      const config = activeSource.config;
       const { db } = await import("~/db/db");
       const { sourceRegistry } = await import("~/services/sources");
 
@@ -229,20 +207,7 @@ export default function BrowsePage() {
       setSaveStatus(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     setTimeout(() => setSaveStatus(null), 5000);
-  }, [activeSource, mangaData, currentUrl, configJson]);
-
-  // ----- Re-detect config for current detail page -----
-  const handleRedetect = useCallback(async () => {
-    if (!currentUrl) return;
-    try {
-      const res = await fetch(`/api/proxy?url=${encodeURIComponent(currentUrl)}`);
-      if (!res.ok) return;
-      const html = await res.text();
-      const config = autoDetectConfig(html, currentUrl);
-      setConfigJson(JSON.stringify(config, null, 2));
-      configDirty.current = false;
-    } catch {}
-  }, [currentUrl]);
+  }, [activeSource, mangaData, currentUrl]);
 
   // ----- Render -----
   return (
@@ -263,13 +228,6 @@ export default function BrowsePage() {
             {src.name}
           </button>
         ))}
-        <button
-          disabled
-          className="px-3 py-2 rounded-t-lg text-xs text-muted-foreground/40 italic"
-          title="More sources coming soon"
-        >
-          + Add source
-        </button>
       </div>
 
       {/* Search Bar (only when source selected, not in detail view) */}
@@ -300,51 +258,6 @@ export default function BrowsePage() {
               {searchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
             </button>
           </form>
-          <button
-            onClick={() => setShowConfig(!showConfig)}
-            className={`p-2.5 rounded-xl ${showConfig ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-            title="Edit scrape config"
-          >
-            <Settings2 className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Config Panel */}
-      {showConfig && (
-        <div className="p-3 bg-card border-b border-border">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold">Site Config (JSON)</h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRedetect}
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-                type="button"
-              >
-                <Wand2 className="w-3 h-3" />
-                Auto-detect
-              </button>
-              <button
-                onClick={() => setShowConfig(false)}
-                className="text-xs text-muted-foreground hover:text-foreground"
-                type="button"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-          <textarea
-            value={configJson}
-            onChange={(e) => {
-              setConfigJson(e.target.value);
-              configDirty.current = true;
-            }}
-            placeholder='{"name":"...","baseUrl":"...","mangaPage":{...},"chapterPage":{...}}'
-            className="w-full h-40 px-3 py-2 rounded-lg bg-background text-xs font-mono border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            CSS selectors control how data is extracted. Edit and re-search or re-enter the detail page to apply changes.
-          </p>
         </div>
       )}
 
