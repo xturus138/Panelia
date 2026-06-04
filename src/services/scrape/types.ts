@@ -12,6 +12,34 @@ export interface SiteConfig {
   /** Base URL of the site (e.g., "https://mangadex.org") */
   baseUrl: string;
 
+  /** Optional: how to search the site for manga by name */
+  searchPage?: {
+    /** URL template with {query} and optional {page} placeholders */
+    urlTemplate: string;
+    /** Selector for each result card/container */
+    resultItem: string;
+    /** Selector for the title text within a result */
+    resultTitle: string;
+    /** Selector for the link (href) within a result */
+    resultUrl: string;
+    /** Selector for the cover image within a result */
+    resultCover: string;
+  };
+
+  /** Optional: how to scrape popular/latest manga from a listing page */
+  popularPage?: {
+    /** URL template for the listing page. Supports {page}. */
+    urlTemplate: string;
+    /** Selector for each result card/container */
+    resultItem: string;
+    /** Selector for the title text within a result */
+    resultTitle: string;
+    /** Selector for the link (href) within a result */
+    resultUrl: string;
+    /** Selector for the cover image within a result */
+    resultCover: string;
+  };
+
   /** CSS selectors for extracting manga metadata from a series page */
   mangaPage: {
     title: string;
@@ -71,3 +99,10 @@ export interface ScrapeSource {
 }
 
 export type ParsedMangaPage = ScrapedManga & { chapters: ScrapedChapter[] };
+
+export interface SearchResult {
+  id: string;
+  title: string;
+  url: string;
+  coverUrl: string;
+}

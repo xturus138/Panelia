@@ -19,11 +19,19 @@ const presets: Record<string, Preset> = {
       baseUrl: 'https://komiku.org',
       searchPage: {
         // Komiku loads results from api.komiku.org via HTMX (lazy-load)
-        urlTemplate: 'https://api.komiku.org/?post_type=manga&s={query}',
+        urlTemplate: 'https://api.komiku.org/?post_type=manga&s={query}&page={page}',
         resultItem: 'div.bge',
         resultTitle: 'h3',
         resultUrl: 'a[href^="/manga/"]',
         resultCover: 'img.lazy, img',
+      },
+      // Show popular manga by default - paginated via komiku.org/page/{page}/
+      popularPage: {
+        urlTemplate: 'https://komiku.org/page/{page}/',
+        resultItem: 'div.ls4v',
+        resultTitle: 'a',
+        resultUrl: 'a',
+        resultCover: 'img.lazy',
       },
       mangaPage: {
         title: 'h1',
