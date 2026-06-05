@@ -1,4 +1,4 @@
-import type { Chapter, LibraryEntry, Manga, ReadProgress, DownloadedChapter, AppSettings } from '~/domain/types';
+import type { Chapter, LibraryEntry, Manga, ReadProgress, AppSettings } from '~/domain/types';
 import type { ScrapeSource } from '~/services/scrape/types';
 
 export interface MangaRepository {
