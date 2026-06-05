@@ -12,8 +12,9 @@ import {
   Settings2,
   Check,
 } from "lucide-react";
+import { MangaCover } from "~/components/common/MangaCover";
 import { ScrapeAdapter } from "~/services/scrape/scrapeAdapter";
-import { useReaderStore } from "~/stores/reader";
+import { useReaderStore } from "~/presentation/stores";
 import { autoDetectConfig } from "~/services/scrape/autoDetect";
 import { getBuiltinPresets, presetToScrapeSource } from "~/services/scrape/presets";
 import { setScrapeSession } from "~/services/scrape/sessionStore";
@@ -294,7 +295,7 @@ export default function BrowsePage() {
       }
 
       const { db } = await import("~/db/db");
-      const { sourceRegistry } = await import("~/services/sources");
+      const { sourceRegistry } = await import("~/infrastructure/sources");
 
       // Save scrape source config
       await db.scrapeSources.put({
@@ -334,6 +335,7 @@ export default function BrowsePage() {
         read: false,
         lastReadPage: 0,
         url: ch.url,
+        status: 'unread' as const,
       }));
       await db.chapters.bulkPut(chapterRows);
 
@@ -529,21 +531,14 @@ export default function BrowsePage() {
                     onClick={() => handleSelectResult(r)}
                     className="group text-left bg-card rounded-xl border border-border overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
                   >
-                    <div className="aspect-[3/4] bg-muted relative overflow-hidden">
-                      {r.coverUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={r.coverUrl}
-                          alt={r.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                          <BookOpen className="w-8 h-8 opacity-30" />
-                        </div>
-                      )}
-                    </div>
+                    <MangaCover
+                      src={r.coverUrl}
+                      alt={r.title}
+                      aspectRatio="3/4"
+                      objectFit="cover"
+                      loading="lazy"
+                      className="group-hover:scale-105 transition-transform"
+                    />
                     <div className="p-2">
                       <p className="text-xs font-medium text-foreground line-clamp-2 leading-relaxed">
                         {r.title}
@@ -604,11 +599,13 @@ export default function BrowsePage() {
 
                 {/* Cover + Info */}
                 <div className="flex gap-4 p-4 border-b border-border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <MangaCover
                     src={mangaData.coverUrl}
                     alt={mangaData.title}
-                    className="w-28 h-40 rounded-xl object-cover shadow-lg flex-shrink-0 bg-muted"
+                    aspectRatio="3/4"
+                    objectFit="cover"
+                    priority
+                    className="w-28 h-40 rounded-xl shadow-lg flex-shrink-0"
                   />
                   <div className="flex flex-col justify-center min-w-0">
                     <h1 className="text-lg font-bold text-foreground leading-tight">

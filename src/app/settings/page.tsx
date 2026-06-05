@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSettingsStore } from '~/store/useSettingsStore'
+import { useSettingsStore } from '~/presentation/stores'
 import { useTheme } from 'next-themes'
 import { Moon, Sun, Monitor, Book, Globe, Eye, Trash2, ChevronRight } from 'lucide-react'
 
@@ -33,7 +33,7 @@ export default function SettingsPage() {
     { value: 'vertical-scroll', label: 'Vertical Scroll' },
     { value: 'webtoon', label: 'Webtoon' },
     { value: 'single-page', label: 'Single Page' },
-    { value: 'double-page', label: 'Double Page' },
+    { value: 'horizontal-swipe', label: 'Horizontal Swipe' },
   ]
 
   const languages = [
