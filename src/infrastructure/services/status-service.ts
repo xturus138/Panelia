@@ -1,0 +1,1 @@
+export { statusService } from '~/services/statusService';

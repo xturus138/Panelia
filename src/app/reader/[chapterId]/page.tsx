@@ -7,6 +7,7 @@ import { sourceRegistry } from '~/services/sources';
 import { db } from '~/db/db';
 import { getScrapeSession, type ChapterInfo } from '~/services/scrape/sessionStore';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
+import { useSettingsStore } from '~/store/useSettingsStore';
 import {
   ArrowLeft,
   ArrowLeftCircle,
@@ -25,8 +26,11 @@ import {
   Smartphone,
   ScrollText,
   GalleryHorizontal,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useToast } from '~/hooks/useToast';
+import { statusService } from '~/infrastructure/services';
 
 type ReadingMode = 'vertical-scroll' | 'webtoon' | 'single-page' | 'horizontal-swipe';
 
@@ -48,13 +52,16 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reading mode state
-  const [readingMode, setReadingMode] = useState<ReadingMode>('vertical-scroll');
+  const { readerMode, updateSettings } = useSettingsStore();
+  const readingMode = readerMode as ReadingMode;
+  const setReadingMode = useCallback((mode: ReadingMode) => updateSettings({ readerMode: mode }), [updateSettings]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [savedInLib, setSavedInLib] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showChapterList, setShowChapterList] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
+  const [chapterStatus, setChapterStatus] = useState<'unread' | 'viewed' | 'completed'>('unread');
+  const [chapterViewed, setChapterViewed] = useState(false);
   const searchParams = useSearchParams();
   const toast = useToast();
 
@@ -98,7 +105,7 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
         title: session.mangaTitle,
         coverUrl: session.mangaCoverUrl,
         sourceUrl: session.sourceUrl,
-        chapters: session.chapters,
+        chapters: [...session.chapters].sort((a, b) => a.chapterNumber - b.chapterNumber),
       });
       // Check if already saved in library
       db.libraryEntries.get(session.mangaId).then((entry) => {
@@ -119,6 +126,46 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
     return () => document.removeEventListener('mousedown', handler);
   }, [showModeMenu]);
 
+  // ---- Mark chapter as viewed when pages load ----
+  useEffect(() => {
+    if (pages.length === 0 || chapterViewed) return;
+    const mangaId = mangaInfo?.mangaId ?? searchParams.get('manga') ?? '';
+    if (!mangaId) return;
+    setChapterViewed(true);
+    // Don't downgrade a previously completed chapter on reopen
+    if (chapterStatus === 'unread') {
+      setChapterStatus('viewed');
+      statusService.markChapterStatus(chapterId, mangaId, 'viewed', 0);
+    }
+  }, [pages, chapterId, mangaInfo, searchParams, chapterViewed, chapterStatus]);
+
+  // ---- Mark chapter completed when on last page ----
+  useEffect(() => {
+    if (pages.length === 0 || chapterStatus === 'completed') return;
+    if (currentPageIndex < pages.length - 1) return;
+    // Only mark completed if we've already viewed (not first render)
+    if (!chapterViewed) return;
+    const mangaId = mangaInfo?.mangaId ?? searchParams.get('manga') ?? '';
+    if (!mangaId) return;
+    setChapterStatus('completed');
+    statusService.markChapterStatus(chapterId, mangaId, 'completed', pages.length - 1);
+  }, [currentPageIndex, pages.length, chapterId, mangaInfo, searchParams, chapterStatus, chapterViewed]);
+
+  // ---- Update last read page on navigation ----
+  useEffect(() => {
+    if (!chapterViewed || pages.length === 0) return;
+    const mangaId = mangaInfo?.mangaId ?? searchParams.get('manga') ?? '';
+    if (!mangaId) return;
+    // Debounce: only persist every few page changes (not every render)
+    const t = setTimeout(() => {
+      if (chapterStatus !== 'completed') {
+        statusService.markChapterStatus(chapterId, mangaId, 'viewed', currentPageIndex);
+      }
+    }, 800);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPageIndex]);
+
   async function loadScrapeChapter(chapterId: string) {
     setLoading(true);
     setError(null);
@@ -135,6 +182,10 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
       // Try the database first (saved/library path)
       loadingToast.update('Mencari chapter di database...');
       const chapter = await db.chapters.get(chapterId);
+      if (chapter) {
+        if (chapter.lastReadPage) setCurrentPageIndex(chapter.lastReadPage);
+        if (chapter.status) setChapterStatus(chapter.status);
+      }
       let url = chapter?.url;
       let adapter: any = null;
 
@@ -265,19 +316,22 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
         url: mangaInfo.sourceUrl,
       } as any);
 
-      // Save chapters
-      const chapterRows = mangaInfo.chapters.map((ch, idx) => ({
-        id: ch.id,
-        mangaId: mangaInfo.mangaId,
-        chapterNumber: ch.chapterNumber,
-        title: ch.title,
-        scanlator: '',
-        releaseDate: '',
-        pageCount: 0,
-        read: false,
-        lastReadPage: 0,
-        url: session.chapterUrls[ch.id] || '',
-      }));
+      // Save chapters (sorted by chapterNumber asc for consistent ordering)
+      const chapterRows = [...mangaInfo.chapters]
+        .sort((a, b) => a.chapterNumber - b.chapterNumber)
+        .map((ch, idx) => ({
+          id: ch.id,
+          mangaId: mangaInfo.mangaId,
+          chapterNumber: ch.chapterNumber,
+          title: ch.title,
+          scanlator: '',
+          releaseDate: '',
+          pageCount: 0,
+          read: false,
+          lastReadPage: 0,
+          url: session.chapterUrls[ch.id] || '',
+          status: 'unread' as const,
+        }));
       await db.chapters.bulkPut(chapterRows);
 
       // Add to library
