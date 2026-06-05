@@ -1,6 +1,6 @@
 'use client'
 
-import { useToastStore, ToastItem as IToastItem } from '~/stores/toast'
+import { useToastStore, type ToastItem as IToastItem } from '~/presentation/stores/toast-store'
 import { CheckCircle, AlertCircle, Loader2, X } from 'lucide-react'
 import { useEffect } from 'react'
 
