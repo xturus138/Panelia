@@ -21,17 +21,19 @@ const presets: Record<string, Preset> = {
         // Komiku loads results from api.komiku.org via HTMX (lazy-load)
         urlTemplate: 'https://api.komiku.org/?post_type=manga&s={query}&page={page}',
         resultItem: 'div.bge',
-        resultTitle: 'h3',
-        resultUrl: 'a[href^="/manga/"]',
-        resultCover: 'img.lazy, img',
+        resultTitle: 'div.kan h3',
+        resultUrl: 'div.kan a',
+        resultCover: 'div.bgei img',
       },
-      // Show popular manga by default - paginated via komiku.org/page/{page}/
+      // Komiku uses HTMX to load from api.komiku.org/manga/
+      // Page 1 uses no /page/ segment, pages 2+ use /page/{page}/
+      // This is handled specially in ScrapeAdapter.buildPageUrl()
       popularPage: {
-        urlTemplate: 'https://komiku.org/page/{page}/',
-        resultItem: 'div.ls4v',
-        resultTitle: 'a',
-        resultUrl: 'a',
-        resultCover: 'img.lazy',
+        urlTemplate: 'https://api.komiku.org/manga/{page}?tipe=manhwa',
+        resultItem: 'div.bge',
+        resultTitle: 'div.kan h3',
+        resultUrl: 'div.kan a',
+        resultCover: 'div.bgei img',
       },
       mangaPage: {
         title: 'h1',

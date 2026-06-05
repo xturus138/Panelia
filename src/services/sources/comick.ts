@@ -152,6 +152,7 @@ export class ComickProvider implements SourceProvider {
       pageCount: ch.md_images?.length || 0,
       read: false,
       lastReadPage: 0,
+      status: 'unread' as const,
     }))
   }
 

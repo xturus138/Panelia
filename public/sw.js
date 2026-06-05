@@ -28,9 +28,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Always let API and proxy requests pass through unchanged — SW caching breaks them
+  // Always let API, proxy, and Next.js dev/HMR requests pass through unchanged
   if (
     url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/_next/') ||
+    url.pathname.includes('webpack-hmr') ||
     request.method !== 'GET'
   ) {
     return; // Let browser handle natively

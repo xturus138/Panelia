@@ -73,4 +73,72 @@ describe('ScrapeAdapter pagination', () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain('page%2F1');
     expect(String(fetchMock.mock.calls[1][0])).toContain('page%2F2');
   });
+
+  it('searchMangaPage fetches a single page and detects hasMore', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(pageHtml('search_p2'), { status: 200 }))
+      .mockResolvedValueOnce(new Response('', { status: 200 }));
+
+    const adapter = new ScrapeAdapter('test', config, 'https://example.com');
+
+    // Page with content
+    const res1 = await adapter.searchMangaPage('hello', 2);
+    expect(res1.results).toHaveLength(2);
+    expect(res1.hasMore).toBe(true);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('page%3D2');
+
+    // Empty page
+    const res2 = await adapter.searchMangaPage('hello', 3);
+    expect(res2.results).toHaveLength(0);
+    expect(res2.hasMore).toBe(false);
+    expect(String(fetchMock.mock.calls[1][0])).toContain('page%3D3');
+  });
+
+  it('getPopularPage fetches a single page and detects hasMore', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(pageHtml('pop_p1'), { status: 200 }));
+
+    const adapter = new ScrapeAdapter('test', config, 'https://example.com');
+    const res = await adapter.getPopularPage(1);
+    expect(res.results).toHaveLength(2);
+    expect(res.hasMore).toBe(true);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('page%2F1');
+  });
+
+  it('handles malformed HTML nesting that usually breaks node-html-parser', async () => {
+    const malformedHtml = `
+      <div class="bge">
+        <div class="bgei"><a href="/manga/a"><img src="a.jpg"></a></div>
+        <div class="kan">
+          <a href="/manga/a"><h3>Title A</h3></a>
+          <span class="judul2"><span style="color:red"><b>641</span></b> pembaca</span>
+        </div>
+      </div>
+    `;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(malformedHtml, { status: 200 }));
+
+    // Use selectors matching the HTML structure
+    const komikuLikeConfig: SiteConfig = {
+      name: 'Test',
+      baseUrl: 'https://example.com',
+      popularPage: {
+        urlTemplate: 'https://example.com/popular',
+        resultItem: 'div.bge',
+        resultTitle: 'div.kan h3',
+        resultUrl: 'div.kan a',
+        resultCover: 'div.bgei img',
+      },
+      mangaPage: { title: '', cover: '', chapterList: '', chapterUrl: '' },
+      chapterPage: { images: '' },
+    };
+
+    const adapter = new ScrapeAdapter('test', komikuLikeConfig, 'https://example.com');
+    const results = await adapter.getPopularResults();
+
+    // Without sanitization, Title A is lost because node-html-parser closes div.bge early at </span>
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe('Title A');
+
+    fetchMock.mockRestore();
+  });
 });

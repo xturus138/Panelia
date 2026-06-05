@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Book, Compass, SquareArrowDown, Settings } from "lucide-react"
 import { cn } from "~/lib/utils"
-import { useReaderStore } from "~/stores/reader"
+import { useReaderStore } from "~/presentation/stores"
 
 const navItems = [
   { href: "/library", label: "Library", icon: Book },

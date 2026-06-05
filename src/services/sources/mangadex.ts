@@ -129,6 +129,7 @@ export class MangaDexProvider implements SourceProvider {
       pageCount: ch.attributes.pages,
       read: false,
       lastReadPage: 0,
+      status: 'unread' as const,
     }));
   }
 

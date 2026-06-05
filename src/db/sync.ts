@@ -2,7 +2,7 @@ import { db } from './db';
 import type { Manga, Chapter, LibraryEntry } from '~/types';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
 import type { SiteConfig } from '~/services/scrape/types';
-import { sourceRegistry } from '~/services/sources';
+import { sourceRegistry } from '~/infrastructure/sources';
 
 /**
  * Sync chapters for a given manga from its source.
@@ -60,6 +60,9 @@ export async function syncChapters(mangaId: string): Promise<number> {
       read: ch.read,
       lastReadPage: ch.lastReadPage,
       url: ch.url,
+      status: ch.status || 'unread',
+      viewedAt: ch.viewedAt,
+      completedAt: ch.completedAt,
     }));
   } else {
     // API source: mangadex or comick
@@ -85,14 +88,43 @@ export async function syncChapters(mangaId: string): Promise<number> {
       read: ch.read,
       lastReadPage: ch.lastReadPage,
       url: ch.url,
+      status: ch.status || 'unread',
+      viewedAt: ch.viewedAt,
+      completedAt: ch.completedAt,
     }));
   }
 
-  // 3. Upsert chapters (Dexie bulkPut inserts or updates by primary key)
-  await db.chapters.bulkPut(chapters);
+  // 3. Merge with existing chapters to preserve status and progress
+  const existingChapters = await db.chapters.where('mangaId').equals(mangaId).toArray();
+  const existingMap = new Map(existingChapters.map(c => [c.id, c]));
 
-  // 4. Update library entry's unreadCount to total chapter count
-  await db.libraryEntries.update(mangaId, { unreadCount: chapters.length });
+  const mergedChapters = chapters.map((ch) => {
+    const existing = existingMap.get(ch.id);
+    return {
+      ...ch,
+      // Preserve tracking fields from DB
+      status: existing?.status || 'unread',
+      read: existing?.read || false,
+      lastReadPage: existing?.lastReadPage || 0,
+      viewedAt: existing?.viewedAt,
+      completedAt: existing?.completedAt,
+    };
+  });
 
-  return chapters.length;
+  const latestChapterIds = new Set(mergedChapters.map((chapter) => chapter.id));
+  const staleChapterIds = existingChapters
+    .filter((chapter) => !latestChapterIds.has(chapter.id))
+    .map((chapter) => chapter.id);
+
+  if (staleChapterIds.length > 0) {
+    await db.chapters.bulkDelete(staleChapterIds);
+  }
+
+  await db.chapters.bulkPut(mergedChapters);
+
+  // 4. Update library entry's unreadCount to count of chapters with status !== 'completed'
+  const unreadCount = mergedChapters.filter(c => c.status !== 'completed').length;
+  await db.libraryEntries.update(mangaId, { unreadCount });
+
+  return mergedChapters.length;
 }

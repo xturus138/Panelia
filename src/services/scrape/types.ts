@@ -80,6 +80,9 @@ export interface ScrapedChapter {
   pageCount: number;   // 0 until pages are fetched
   read: boolean;
   lastReadPage: number;
+  status?: 'unread' | 'viewed' | 'completed';
+  viewedAt?: string;
+  completedAt?: string;
   url: string;         // the original chapter URL
 }
 

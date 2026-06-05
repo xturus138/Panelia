@@ -1,29 +1,54 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import type { Manga } from "~/types"
 import { cn } from "~/lib/utils"
-import { Trash2, MoreVertical, RefreshCw } from "lucide-react"
+import { Trash2, MoreVertical, RefreshCw, Clock } from "lucide-react"
 import { removeFromLibrary } from "~/db/library"
+import { MangaCover } from "~/components/common/MangaCover"
+
+function formatRelativeTime(dateStr: string) {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+  if (diffInSeconds < 60) return "Just now"
+  const diffInMinutes = Math.floor(diffInSeconds / 60)
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+  const diffInHours = Math.floor(diffInMinutes / 60)
+  if (diffInHours < 24) return `${diffInHours}h ago`
+  const diffInDays = Math.floor(diffInHours / 24)
+  if (diffInDays < 7) return `${diffInDays}d ago`
+  return date.toLocaleDateString()
+}
 
 interface MangaCardProps {
   manga: Manga
   className?: string
   chapterCount?: number
+  unreadCount?: number
+  lastViewedAt?: string
   sourceId?: string
   onDeleted?: (mangaId: string) => void
   onRefresh?: (mangaId: string) => void | Promise<void>
   refreshing?: boolean
 }
 
-export function MangaCard({ manga, className, chapterCount, sourceId, onDeleted, onRefresh, refreshing }: MangaCardProps) {
+export function MangaCard({ manga, className, chapterCount, unreadCount, lastViewedAt, sourceId, onDeleted, onRefresh, refreshing }: MangaCardProps) {
   // Append sourceId to URL for multi-source support
   const href = sourceId ? `/manga/${sourceId}:${manga.id}` : `/manga/${manga.id}`
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const lastReadText = useMemo(() => {
+    if (!lastViewedAt) return null;
+    return formatRelativeTime(lastViewedAt);
+  }, [lastViewedAt]);
+
+  const displayUnread = unreadCount ?? 0;
 
   // Close menu on outside click
   useEffect(() => {
@@ -64,16 +89,24 @@ export function MangaCard({ manga, className, chapterCount, sourceId, onDeleted,
     >
       <Link href={href} className="block">
         {/* Cover Image with Badge */}
-        <div className="relative aspect-[0.7] bg-muted overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative">
+          <MangaCover
             src={manga.coverUrl}
             alt={manga.title}
-            className="w-full h-full object-cover transition-transform duration-150 group-hover:scale-105"
+            aspectRatio="3/4"
+            objectFit="cover"
+            className="transition-transform duration-150 group-hover:scale-105"
           />
+          {/* Unread Badge */}
+          {displayUnread > 0 && (
+            <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm z-10">
+              {displayUnread}
+            </div>
+          )}
+
           {/* Chapter Badge */}
           {chapterCount !== undefined && chapterCount > 0 && (
-            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-1 rounded-full">
+            <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-1 rounded-full z-10">
               Ch. {chapterCount}
             </div>
           )}
@@ -88,6 +121,12 @@ export function MangaCard({ manga, className, chapterCount, sourceId, onDeleted,
             <p className="text-[11px] text-muted-foreground truncate">
               {manga.genres.slice(0, 2).join(" • ")}
             </p>
+          )}
+          {lastReadText && (
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground bg-secondary/40 px-1.5 py-0.5 rounded mt-1.5 w-fit">
+              <Clock className="w-3 h-3" />
+              <span>{lastReadText}</span>
+            </div>
           )}
         </div>
       </Link>

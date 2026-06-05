@@ -101,6 +101,18 @@ export class ScrapeAdapter implements SourceProvider {
     );
   }
 
+  /** Fetch a single page of search results. Returns results and whether more pages may exist. */
+  async searchMangaPage(query: string, page: number): Promise<{ results: SearchResult[]; hasMore: boolean }> {
+    if (!this.config.searchPage) return { results: [], hasMore: false };
+    const { urlTemplate, resultItem, resultTitle, resultUrl, resultCover } = this.config.searchPage;
+    const selectors: ListingSelectors = { resultItem, resultTitle, resultUrl, resultCover };
+    const url = this.buildPageUrl(urlTemplate, page, query);
+    const results = await this.fetchListingPage(url, selectors);
+    const hasMore = results.length > 0 && page < MAX_LISTING_PAGES;
+    return { results, hasMore };
+  }
+
+  /** Fetch all popular results. Pagination is hidden from the UI. */
   async getPopularResults(): Promise<SearchResult[]> {
     if (this.config.popularPage) {
       const { urlTemplate, resultItem, resultTitle, resultUrl, resultCover } = this.config.popularPage;
@@ -108,6 +120,17 @@ export class ScrapeAdapter implements SourceProvider {
     }
 
     return this.searchManga('');
+  }
+
+  /** Fetch a single page of popular results. Returns results and whether more pages may exist. */
+  async getPopularPage(page: number): Promise<{ results: SearchResult[]; hasMore: boolean }> {
+    if (!this.config.popularPage) return { results: [], hasMore: false };
+    const { urlTemplate, resultItem, resultTitle, resultUrl, resultCover } = this.config.popularPage;
+    const selectors: ListingSelectors = { resultItem, resultTitle, resultUrl, resultCover };
+    const url = this.buildPageUrl(urlTemplate, page);
+    const results = await this.fetchListingPage(url, selectors);
+    const hasMore = results.length > 0 && page < MAX_LISTING_PAGES;
+    return { results, hasMore };
   }
 
   // ----- SourceProvider implementation (delegates to fetch + parse) -----
@@ -160,7 +183,12 @@ export class ScrapeAdapter implements SourceProvider {
   }
 
   private buildPageUrl(template: string, page: number, query?: string): string {
-    let url = template.replace('{page}', String(page));
+    let url = template;
+    if (this.id === 'preset-komiku' && template.includes('/manga/{page}?')) {
+      url = template.replace('/{page}', page > 1 ? `/page/${page}/` : '/');
+    } else {
+      url = template.replace('{page}', String(page));
+    }
     if (query !== undefined) {
       url = url.replace('{query}', encodeURIComponent(query));
     }
@@ -170,7 +198,12 @@ export class ScrapeAdapter implements SourceProvider {
   private async fetchListingPage(url: string, selectors: ListingSelectors): Promise<SearchResult[]> {
     const res = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
     if (!res.ok) throw new Error(`Listing failed: HTTP ${res.status}`);
-    const html = await res.text();
+    let html = await res.text();
+
+    // Sanitize malformed HTML patterns that break node-html-parser
+    // Fix: <span ...><b>...</span></b> -> <span ...><b>...</b></span>
+    html = html.replace(/<span(.*?)><b>(.*?)<\/span><\/b>/gi, '<span$1><b>$2</b></span>');
+
     return this.parseSearchResults(html, selectors);
   }
 
@@ -179,24 +212,39 @@ export class ScrapeAdapter implements SourceProvider {
     const items = root.querySelectorAll(selectors.resultItem);
 
     return items.map((item) => {
-      const titleEl = item.querySelector(selectors.resultTitle);
-      const linkEl = item.querySelector(selectors.resultUrl);
-      const coverEl = item.querySelector(selectors.resultCover);
+      const titleEl = this.querySelectorMulti(item, selectors.resultTitle);
+      const linkEl = this.querySelectorMulti(item, selectors.resultUrl);
+      const coverEl = this.querySelectorMulti(item, selectors.resultCover);
 
+      const href = linkEl?.getAttribute('href') || '';
       let title = titleEl?.text?.trim() || linkEl?.text?.trim() || '';
+      title = title.replace(/\s+/g, ' '); // Clean up multi-line spaces
       if (!title && coverEl) {
         const alt = coverEl.getAttribute('alt') || '';
         title = alt.replace(/^(Baca|Read|Manga|Manhwa|Manhua)\s+/i, '').trim();
       }
+      if (!title && href) {
+        // Fallback to URL slug (e.g. /manga/solo-leveling/ -> Solo Leveling)
+        const slug = href.split('/').filter(Boolean).pop();
+        if (slug) {
+          title = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+      }
       if (!title) title = 'Untitled';
 
-      const href = linkEl?.getAttribute('href') || '';
       const url = this.resolveUrl(href);
       let coverSrc = coverEl?.getAttribute('data-src')
         || coverEl?.getAttribute('data-lazy-src')
         || coverEl?.getAttribute('data-original')
+        || coverEl?.getAttribute('data-srcset')
         || coverEl?.getAttribute('src')
         || '';
+
+      if (coverSrc.includes(' ')) {
+        // Handle potential srcset (e.g. "url1 1x, url2 2x")
+        coverSrc = coverSrc.split(' ')[0];
+      }
+
       if (/lazy\.jpg|lazy\.png|placeholder|loading\.|spinner/i.test(coverSrc)) {
         coverSrc = '';
       }
@@ -205,6 +253,23 @@ export class ScrapeAdapter implements SourceProvider {
 
       return { id, title, url, coverUrl };
     });
+  }
+
+  /**
+   * Try multiple selectors (comma-separated) and return the first match.
+   * node-html-parser doesn't support comma-separated selector lists natively.
+   */
+  private querySelectorMulti(
+    root: ReturnType<typeof parseHtml>,
+    selector: string
+  ): ReturnType<typeof parseHtml>['querySelector'] extends (s: string) => infer R ? R : never {
+    if (!selector) return null;
+    const parts = selector.split(',').map(s => s.trim());
+    for (const part of parts) {
+      const el = root.querySelector(part);
+      if (el) return el;
+    }
+    return null;
   }
 
   // ----- Helpers -----
@@ -226,7 +291,26 @@ export class ScrapeAdapter implements SourceProvider {
   private extractAttr(root: ReturnType<typeof parseHtml>, selector: string, attr: string): string {
     if (!selector) return '';
     const el = root.querySelector(selector);
-    return el?.getAttribute(attr) || '';
+    if (!el) return '';
+
+    // For src attributes, check common lazy-load attributes first
+    if (attr === 'src') {
+      const lazySrc = el.getAttribute('data-src')
+        || el.getAttribute('data-lazy-src')
+        || el.getAttribute('data-original')
+        || el.getAttribute('data-srcset')
+        || el.getAttribute('src')
+        || '';
+
+      // Handle srcset format (e.g. "url1 1x, url2 2x")
+      if (lazySrc.includes(' ')) {
+        return lazySrc.split(' ')[0];
+      }
+
+      return lazySrc;
+    }
+
+    return el.getAttribute(attr) || '';
   }
 
   private resolveTitleText(

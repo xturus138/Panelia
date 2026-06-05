@@ -27,6 +27,11 @@ class PaneliaDB extends Dexie {
     this.version(2).stores({
       scrapeSources: 'id, baseUrl, createdAt',
     });
+    // v3: add status/viewed tracking fields to chapters and libraryEntries
+    this.version(3).stores({
+      chapters: 'id, mangaId, chapterNumber, status',
+      libraryEntries: 'mangaId, *categories, lastViewedAt',
+    });
   }
 }
 

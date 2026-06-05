@@ -2,7 +2,6 @@
 
 **Date:** 2026-06-02
 **Status:** Approved for Implementation
-**Concept:** [concept.md](../../../concept.md)
 
 ## 1. Overview
 
