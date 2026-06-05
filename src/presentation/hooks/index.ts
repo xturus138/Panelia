@@ -1,0 +1,1 @@
+export { useMangaDetailsViewModel } from './use-manga-details';

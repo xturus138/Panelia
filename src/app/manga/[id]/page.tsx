@@ -1,41 +1,28 @@
 "use client"
 
-import { use, useEffect, useState, useCallback, useMemo } from 'react'
-import { toggleInLibrary, isInLibrary } from '~/db/library'
-import { sourceRegistry } from '~/services/sources'
-import { db } from '~/db/db'
-import type { Manga, Chapter, ReadStatus } from '~/types'
+import { use, useEffect, useCallback } from 'react'
+import { useMangaDetailsViewModel } from '~/presentation/hooks'
 import { ArrowLeft, Library, Check, ChevronRight, Eye, EyeOff, BookOpen, Loader2 } from 'lucide-react'
 import { MangaCover } from '~/components/common/MangaCover'
-import { useReaderStore } from '~/stores/reader'
-import { statusService } from '~/infrastructure/services'
-import { useLiveQuery } from 'dexie-react-hooks'
 
 export default function MangaDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: rawId } = use(params)
   const id = decodeURIComponent(rawId)
-  const [manga, setManga] = useState<Manga | null>(null)
-  const [chapters, setChapters] = useState<Chapter[]>([])
-  const [inLib, setInLib] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [readerUrl, setReaderUrl] = useState<string | null>(null)
-  const setReaderOpen = useReaderStore((s) => s.setReaderOpen)
-
-  // Load library entry for last viewed info
-  const libraryEntry = useLiveQuery(
-    () => id ? db.libraryEntries.get(id) : undefined,
-    [id]
-  );
-
-  const openReader = useCallback((chapterId: string) => {
-    setReaderUrl(`/reader/${encodeURIComponent(chapterId)}?manga=${encodeURIComponent(id)}`);
-    setReaderOpen(true);
-  }, [id, setReaderOpen]);
-
-  const closeReader = useCallback(() => {
-    setReaderUrl(null);
-    setReaderOpen(false);
-  }, [setReaderOpen]);
+  const {
+    manga,
+    chapters,
+    inLib,
+    loading,
+    readerUrl,
+    loadingChapterId,
+    libraryEntry,
+    readCounts,
+    lastViewedChapter,
+    openReader,
+    closeReader,
+    handleToggleLibrary,
+    toggleChapterStatus,
+  } = useMangaDetailsViewModel(id)
 
   useEffect(() => {
     if (!readerUrl) return;
@@ -64,125 +51,6 @@ export default function MangaDetailsPage({ params }: { params: Promise<{ id: str
   const handleReaderEscape = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Escape') closeReader();
   }, [closeReader]);
-
-  useEffect(() => {
-    // Parse composite id
-    // API sources:   "mangadex:abc123"  → sourceId="mangadex", mangaId="abc123"
-    // Scrape sources:"scrape:preset-komiku:irnihh" → sourceId="scrape:preset-komiku", mangaId="irnihh"
-    const parts = id.split(':')
-    let sourceId: string, mangaId: string
-    if (parts[0] === 'scrape') {
-      sourceId = parts[0] + ':' + parts[1]   // "scrape:preset-komiku"
-      mangaId = parts.slice(2).join(':')     // "irnihh"
-    } else {
-      sourceId = parts[0]                     // "mangadex"
-      mangaId = parts.slice(1).join(':')      // "abc123"
-    }
-
-    // For scrape sources, we can load from DB without a live provider,
-    // but try to rehydrate anyway for potential future features.
-    const provider = sourceRegistry.getOrRehydrate(sourceId);
-
-    console.log('MangaDetailsPage id:', id, 'sourceId:', sourceId, 'mangaId:', mangaId, 'provider:', !!provider);
-
-    if (sourceId.startsWith('scrape')) {
-      // Rehydrate user-defined sources if missing
-      if (!provider) {
-        db.scrapeSources.get(parts[1]).then(savedSource => {
-          if (savedSource) {
-            sourceRegistry.registerScrapeSource(savedSource.id, savedSource.config, savedSource.baseUrl);
-          }
-        });
-      }
-      setLoading(true)
-      console.log('Looking up scrape manga in DB by id:', id);
-      Promise.all([
-        db.manga.get(id),
-        db.chapters.where('mangaId').equals(id).toArray(),
-        isInLibrary(id),
-      ]).then(([m, c, l]) => {
-        console.log('Scrape DB results - Manga:', !!m, 'Chapters:', c.length, 'InLib:', l);
-        if (!m) {
-          db.manga.toArray().then(all => {
-            console.log('All manga in DB:', all.map(m => ({ id: m.id, title: m.title })));
-          });
-        }
-        setManga((m as Manga) || null)
-        const sortedScrapeChapters = (c as Chapter[]).sort((a, b) => b.chapterNumber - a.chapterNumber)
-        setChapters(sortedScrapeChapters)
-        setInLib(l)
-        setLoading(false)
-      }).catch((err) => {
-        console.error('Error loading scrape manga:', err);
-        setLoading(false)
-      })
-      return
-    }
-
-    if (!provider || !mangaId) {
-      console.log('Provider or mangaId missing. Provider:', !!provider);
-      setLoading(false)
-      return
-    }
-
-    setLoading(true)
-    Promise.all([
-      provider.getMangaDetails(mangaId),
-      provider.getChapters(mangaId),
-      isInLibrary(id),
-      db.chapters.where('mangaId').equals(id).toArray(),
-    ]).then(([m, c, l, localChapters]) => {
-      const localMap = new Map(localChapters.map(lc => [lc.id, lc]))
-      setManga({ ...m, id, sourceId })
-      const sortedChapters = c.sort((a, b) => b.chapterNumber - a.chapterNumber)
-      setChapters(sortedChapters.map((ch) => {
-        const local = localMap.get(ch.id)
-        return {
-          ...ch,
-          mangaId: id,
-          status: local?.status || 'unread',
-          read: local?.read || false,
-          lastReadPage: local?.lastReadPage || 0,
-          viewedAt: local?.viewedAt,
-          completedAt: local?.completedAt
-        }
-      }))
-      setInLib(l)
-      setLoading(false)
-    }).catch(() => {
-      setLoading(false)
-    })
-  }, [id])
-
-  const [loadingChapterId, setLoadingChapterId] = useState<string | null>(null)
-
-  const handleToggleLibrary = async () => {
-    if (!manga) return
-    const isNowInLib = await toggleInLibrary(manga, chapters)
-    setInLib(isNowInLib)
-  }
-
-  const readCounts = useMemo(() => {
-    const viewed = chapters.filter(ch => ch.status !== 'unread').length
-    const completed = chapters.filter(ch => ch.status === 'completed').length
-    return { viewed, completed, total: chapters.length }
-  }, [chapters])
-
-  const lastViewedChapter = useMemo(() => {
-    if (!libraryEntry?.lastViewedChapterId) return null
-    return chapters.find(ch => ch.id === libraryEntry.lastViewedChapterId) ?? null
-  }, [libraryEntry, chapters])
-
-  const toggleChapterStatus = async (chapterId: string, nextStatus: ReadStatus) => {
-    if (!manga) return
-    setLoadingChapterId(chapterId)
-    await statusService.markChapterStatus(chapterId, id, nextStatus, nextStatus === 'unread' ? 0 : 0)
-    const updated = await db.chapters.get(chapterId)
-    if (updated) {
-      setChapters(prev => prev.map(ch => ch.id === chapterId ? updated : ch))
-    }
-    setLoadingChapterId(null)
-  }
 
   if (loading) {
     return (
