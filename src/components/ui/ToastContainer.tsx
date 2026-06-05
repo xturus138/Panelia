@@ -37,11 +37,11 @@ function ToastItem({ toast, onDismiss }: { toast: IToastItem; onDismiss: () => v
     loading: Loader2,
   }
 
-  const Icon = Icons[toast.type as 'success' | 'error' | 'loading']
+  const Icon = Icons[toast.type]
 
   return (
     <div
-      className={`pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-lg transition-all animate-fade-in ${typeStyles[toast.type as 'success' | 'error' | 'loading']} bg-background/80`}
+      className={`pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-lg transition-all animate-fade-in ${typeStyles[toast.type]} bg-background/80`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
         <Icon className={`w-4 h-4 flex-shrink-0 ${toast.type === 'loading' ? 'animate-spin' : ''}`} />
