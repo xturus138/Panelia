@@ -1,5 +1,7 @@
 import { db } from './db';
 import type { Manga, Chapter, LibraryEntry } from '~/types';
+import { deleteDownloadedChaptersByMangaId } from '~/infrastructure/db/downloads';
+import { deleteReadProgressByChapterIds } from '~/infrastructure/db/read-progress';
 
 export async function toggleInLibrary(manga: Manga, chapters?: Chapter[]) {
   const exists = await db.libraryEntries.get(manga.id);
@@ -51,21 +53,10 @@ export async function removeFromLibrary(mangaId: string): Promise<void> {
       }
 
       // 4. Delete all read progress entries for these chapters
-      if (chapterIds.length > 0) {
-        await db.readProgress
-          .where('chapterId')
-          .anyOf(chapterIds)
-          .delete();
-      }
+      await deleteReadProgressByChapterIds(chapterIds);
 
       // 5. Delete any downloaded chapters for this manga
-      const downloadedChapterIds = await db.downloadedChapters
-        .where('mangaId')
-        .equals(mangaId)
-        .primaryKeys();
-      if (downloadedChapterIds.length > 0) {
-        await db.downloadedChapters.bulkDelete(downloadedChapterIds);
-      }
+      await deleteDownloadedChaptersByMangaId(mangaId);
     }
   );
 }
