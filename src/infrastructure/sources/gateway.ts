@@ -1,22 +1,18 @@
-import { sourceRegistry } from './registry';
+import { sourceRegistry, type SourceProviderEntry } from './registry';
 import type { SourceProvider } from '~/domain/interfaces';
 
-export interface SourceGatewayEntry {
-  id: string;
-  name: string;
-  provider: SourceProvider;
-}
-
-export const sourceGateway = {
-  list(): SourceGatewayEntry[] {
+class SourceGateway {
+  list(): SourceProviderEntry[] {
     return sourceRegistry.getAllProviders();
-  },
+  }
 
   getProvider(id: string): SourceProvider | null {
-    return sourceRegistry.get(id);
-  },
+    return sourceRegistry.getOrRehydrate(id);
+  }
 
-  registerModule(module: { id: string; name: string; provider: SourceProvider }): void {
-    sourceRegistry.register(module.id, module.provider);
-  },
-};
+  registerModule(id: string, provider: SourceProvider): void {
+    sourceRegistry.register(id, provider);
+  }
+}
+
+export const sourceGateway = new SourceGateway();

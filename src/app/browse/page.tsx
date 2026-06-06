@@ -19,12 +19,21 @@ import { autoDetectConfig } from "~/services/scrape/autoDetect";
 import { getBuiltinPresets, presetToScrapeSource } from "~/services/scrape/presets";
 import { setScrapeSession } from "~/services/scrape/sessionStore";
 import type { SiteConfig, ParsedMangaPage, SearchResult, ScrapeSource } from "~/services/scrape/types";
-import type { Manga } from "~/types";
+import type { Manga, Chapter } from "~/domain/types";
+import type { SourceProvider } from "~/domain/interfaces";
 import { useToast } from "~/hooks/useToast";
-import { sourceGateway } from "~/infrastructure/sources";
-
+import { sourceGateway, sourceRegistry, type SourceProviderEntry } from "~/services/sources";
 
 type ViewMode = "sources" | "search" | "detail";
+
+interface UnifiedSource {
+  id: string;
+  name: string;
+  baseUrl?: string;
+  isScrape: boolean;
+  scrapeConfig?: SiteConfig;
+  provider?: SourceProvider;
+}
 
 const NOISE_PATTERNS = [/\/jp\.png/, /\/kr\.png/, /\/cn\.png/, /\/logo/, /\/icon/];
 const COVER_FALLBACK = "https://placehold.co/400x600/1a1a1a/cccccc?text=No+Cover";
@@ -59,8 +68,8 @@ async function validateCoverUrl(url: string): Promise<string> {
 
 export default function BrowsePage() {
   // Source state
-  const [sources, setSources] = useState<ScrapeSource[]>([]);
-  const [activeSource, setActiveSource] = useState<ScrapeSource | null>(null);
+  const [sources, setSources] = useState<UnifiedSource[]>([]);
+  const [activeSource, setActiveSource] = useState<UnifiedSource | null>(null);
   const [view, setView] = useState<ViewMode>("sources");
   const [configJson, setConfigJson] = useState<string>("");
   const [showConfig, setShowConfig] = useState(false);
@@ -87,10 +96,26 @@ export default function BrowsePage() {
     setReaderOpen(false);
   }, [setReaderOpen]);
 
-  // Load presets on mount
+  // Load sources on mount
   useEffect(() => {
-    const loaded = getBuiltinPresets().map(presetToScrapeSource);
-    setSources(loaded);
+    const scrapeSources = getBuiltinPresets().map(presetToScrapeSource).map((src: ScrapeSource) => ({
+      id: src.id,
+      name: src.name,
+      baseUrl: src.baseUrl,
+      isScrape: true,
+      scrapeConfig: src.config
+    }));
+
+    const nativeSources = sourceGateway.list().map((src: SourceProviderEntry) => ({
+      id: src.id,
+      name: src.name,
+      isScrape: false,
+      provider: src.provider
+    }));
+
+    const all = [...nativeSources, ...scrapeSources];
+    console.log('[BrowsePage] loaded sources:', all.map(s => s.id));
+    setSources(all);
   }, []);
 
   useEffect(() => {
@@ -145,14 +170,16 @@ export default function BrowsePage() {
   // When source changes, reset view and set default config
   useEffect(() => {
     if (!activeSource) {
+      console.log('[BrowsePage] no active source');
       setView("sources");
       return;
     }
+    console.log('[BrowsePage] active source changed:', activeSource.id, activeSource.name);
     setView("search");
     setResults([]);
     setMangaData(null);
     setQuery("");
-    setConfigJson(JSON.stringify(activeSource.config, null, 2));
+    setConfigJson(activeSource.isScrape ? JSON.stringify(activeSource.scrapeConfig, null, 2) : "{}");
     configDirty.current = false;
     setSavedInSession(false);
 
@@ -161,10 +188,22 @@ export default function BrowsePage() {
       setSearchLoading(true);
       const loading = toast.loading(`Loading popular from ${activeSource.name}...`);
       try {
-        const adapter = new ScrapeAdapter(activeSource.id, activeSource.config, activeSource.baseUrl);
-        // Try popularPage first, fallback to empty search
-        const popularResults = await adapter.getPopularResults();
-        // Dedupe by URL since the same manga can appear in multiple sections
+        let popularResults: SearchResult[] = [];
+        if (activeSource.isScrape) {
+          const adapter = new ScrapeAdapter(activeSource.id, activeSource.scrapeConfig!, activeSource.baseUrl!);
+          popularResults = await adapter.getPopularResults();
+        } else {
+          const provider = activeSource.provider!;
+          const manga = await provider.getPopular(1);
+          popularResults = manga.map((m: Manga) => ({
+            id: m.id,
+            title: m.title,
+            url: m.url || '',
+            coverUrl: m.coverUrl
+          }));
+        }
+
+        // Dedupe by URL
         const seen = new Set<string>();
         const deduped = popularResults.filter((r) => {
           if (seen.has(r.url)) return false;
@@ -204,8 +243,26 @@ export default function BrowsePage() {
     setSearchLoading(true);
     const loading = toast.loading("Searching...");
     try {
-      const adapter = getAdapter(activeSource.baseUrl);
-      const searchResults = await adapter.searchManga(query.trim());
+      let searchResults: SearchResult[] = [];
+      if (activeSource.isScrape) {
+        let config: SiteConfig;
+        try {
+          config = JSON.parse(configJson);
+        } catch {
+          throw new Error("Invalid config JSON");
+        }
+        const adapter = new ScrapeAdapter(activeSource.id, config, activeSource.baseUrl!);
+        searchResults = await adapter.searchManga(query.trim());
+      } else {
+        const manga = await activeSource.provider!.search(query.trim(), 1);
+        searchResults = manga.map((m: Manga) => ({
+          id: m.id,
+          title: m.title,
+          url: m.url || '',
+          coverUrl: m.coverUrl
+        }));
+      }
+
       // Dedupe by URL
       const seen = new Set<string>();
       const deduped = searchResults.filter((r) => {
@@ -224,7 +281,7 @@ export default function BrowsePage() {
       toast.error(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     setSearchLoading(false);
-  }, [activeSource, query, getAdapter]);
+  }, [activeSource, query, configJson]);
 
   // Debounced search handler
   const handleSearchDebounced = useCallback(() => {
@@ -257,55 +314,79 @@ export default function BrowsePage() {
       setCurrentUrl(result.url);
       const loading = toast.loading("Loading manga details...");
       try {
-        const res = await fetch(`/api/proxy?url=${encodeURIComponent(result.url)}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const html = await res.text();
-        const adapter = getAdapter(result.url);
+        let parsed: ParsedMangaPage;
 
-        // Preprocess HTML for extraction (same base + lazy-load fixes)
-        const processedHtml = html
-          .replace(/<head>/i, `<head><base href="${result.url}" />`)
-          .replace(/\sdata-(?:src|lazy-src|original)\s*=\s*(['"])(.*?)\1/gi, (_, quote, val) => ` src=${quote}${val}${quote} data-processed="true"`);
+        if (activeSource.isScrape) {
+          const res = await fetch(`/api/proxy?url=${encodeURIComponent(result.url)}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const html = await res.text();
+          let config: SiteConfig;
+          try {
+            config = JSON.parse(configJson);
+          } catch {
+            throw new Error("Invalid config JSON");
+          }
+          const adapter = new ScrapeAdapter(activeSource.id, config, result.url);
 
-        const parsed = adapter.parseMangaPage(processedHtml);
+          // Preprocess HTML for extraction (same base + lazy-load fixes)
+          const processedHtml = html
+            .replace(/<head>/i, `<head><base href="${result.url}" />`)
+            .replace(/\sdata-(?:src|lazy-src|original)\s*=\s*(['"])(.*?)\1/gi, (_, quote, val) => ` src=${quote}${val}${quote} data-processed="true"`);
+
+          parsed = adapter.parseMangaPage(processedHtml);
+
+          // Register a live-read session so the reader can resolve chapter URLs
+          const chapterUrls: Record<string, string> = {};
+          for (const ch of parsed.chapters) {
+            chapterUrls[ch.id] = ch.url;
+          }
+          setScrapeSession(
+            activeSource.id,
+            config,
+            activeSource.baseUrl!,
+            chapterUrls,
+            parsed.id,
+            parsed.title,
+            parsed.coverUrl,
+            result.url,
+            parsed.chapters.map((ch) => ({ id: ch.id, title: ch.title, chapterNumber: ch.chapterNumber }))
+          );
+        } else {
+          // Native provider
+          const provider = activeSource.provider!;
+          const mangaId = result.id;
+          const [m, c] = await Promise.all([
+            provider.getMangaDetails(mangaId),
+            provider.getChapters(mangaId)
+          ]);
+
+          parsed = {
+            ...m,
+            url: m.url || '',
+            sourceId: activeSource.id,
+            chapters: c.map((ch: Chapter) => ({
+              ...ch,
+              url: ch.url || '',
+              mangaId: m.id,
+              status: 'unread'
+            }))
+          };
+        }
 
         // Validate cover URL
         parsed.coverUrl = await validateCoverUrl(parsed.coverUrl);
-
-        // Register a live-read session so the reader can resolve chapter URLs
-        // and rebuild the adapter on-the-fly without saving to the library.
-        const chapterUrls: Record<string, string> = {};
-        for (const ch of parsed.chapters) {
-          chapterUrls[ch.id] = ch.url;
-        }
-        let liveConfig: SiteConfig;
-        try {
-          liveConfig = JSON.parse(configJson);
-        } catch {
-          liveConfig = activeSource.config;
-        }
-        setScrapeSession(
-          activeSource.id,
-          liveConfig,
-          activeSource.baseUrl,
-          chapterUrls,
-          parsed.id,
-          parsed.title,
-          parsed.coverUrl,
-          result.url,
-          parsed.chapters.map((ch) => ({ id: ch.id, title: ch.title, chapterNumber: ch.chapterNumber }))
-        );
 
         setMangaData(parsed);
         setView("detail");
         loading.dismiss();
       } catch (err) {
+        console.error("Load failed:", err);
         loading.dismiss();
         toast.error(`Failed to load: ${err instanceof Error ? err.message : String(err)}`);
       }
       setDetailLoading(false);
     },
-    [activeSource, getAdapter, configJson]
+    [activeSource, configJson]
   );
 
   // ----- Save to library -----
@@ -313,17 +394,6 @@ export default function BrowsePage() {
     if (!activeSource || !mangaData || !currentUrl) return;
     const loading = toast.loading("Saving to library...");
     try {
-      let config: SiteConfig;
-      try {
-        config = JSON.parse(configJson);
-      } catch {
-        loading.dismiss();
-        toast.error("Invalid config JSON");
-        return;
-      }
-
-      const { sourceGateway } = await import("~/infrastructure/sources");
-      const { saveScrapeSource } = await import("~/infrastructure/db/scrape-sources");
       const { saveManga } = await import("~/infrastructure/db/manga");
       const { saveChapters } = await import("~/infrastructure/db/chapters");
       const { toggleInLibrary } = await import("~/infrastructure/db/library");
@@ -332,14 +402,29 @@ export default function BrowsePage() {
       const currentUid = auth.currentUser?.uid;
       if (!currentUid) { loading.dismiss(); toast.error('Login required'); return; }
 
-      // Save scrape source config
-      await saveScrapeSource(currentUid, {
-        id: activeSource.id,
-        name: config.name || mangaData.title,
-        baseUrl: config.baseUrl,
-        config,
-        createdAt: new Date().toISOString(),
-      });
+      if (activeSource.isScrape) {
+        const { saveScrapeSource } = await import("~/infrastructure/db/scrape-sources");
+        let config: SiteConfig;
+        try {
+          config = JSON.parse(configJson);
+        } catch {
+          loading.dismiss();
+          toast.error("Invalid config JSON");
+          return;
+        }
+
+        // Save scrape source config
+        await saveScrapeSource(currentUid, {
+          id: activeSource.id,
+          name: config.name || mangaData.title,
+          baseUrl: config.baseUrl,
+          config,
+          createdAt: new Date().toISOString(),
+        });
+
+        // Register with sourceRegistry for current session
+        sourceRegistry.registerScrapeSource(activeSource.id, config, currentUrl);
+      }
 
       // Save manga to Firestore
       const validatedCover = await validateCoverUrl(mangaData.coverUrl);
@@ -377,8 +462,6 @@ export default function BrowsePage() {
 
       // Add to library
       await toggleInLibrary(currentUid, mangaRow, chapterRows);
-
-      // Source already registered as normal module via gateway
 
       setSavedInSession(true);
       loading.dismiss();
