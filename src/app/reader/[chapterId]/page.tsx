@@ -64,7 +64,7 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
     toggleControls,
   } = useReaderChapterViewModel(chapterId, toast);
 
-  const { brightness, readingDirection, pageFitMode } = useSettingsStore();
+  const { readingDirection, pageFitMode } = useSettingsStore();
 
   const [downloading, setDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
@@ -275,7 +275,6 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
       <div
         ref={scrollContainerRef}
         className={`flex-1 overflow-y-auto ${readingMode === 'webtoon' ? '' : readingMode === 'vertical-scroll' ? 'px-0' : ''}`}
-        style={{ filter: `brightness(${brightness}%)` }}
         onClick={(e) => {
           const target = e.target as HTMLElement;
           if (target.closest('button, a, select, .click-zone, .mode-menu')) return;

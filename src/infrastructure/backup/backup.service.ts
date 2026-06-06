@@ -1,46 +1,42 @@
-import { db } from '~/db/db';
-import { BackupData, ImportMode, ValidationResult } from './types';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '~/lib/firebase';
+import type { BackupData, ValidationResult, ImportMode } from './types';
 import { validateBackupShape } from './validators';
 import { useSettingsStore } from '~/presentation/stores/settings-store';
 
+const supportedVersion = 1;
+
 export async function exportBackup(): Promise<BackupData> {
-  const [
-    manga,
-    chapters,
-    libraryEntries,
-    categories,
-    readProgress,
-    downloadedChapters,
-    scrapeSources
-  ] = await Promise.all([
-    db.manga.toArray(),
-    db.chapters.toArray(),
-    db.libraryEntries.toArray(),
-    db.categories.toArray(),
-    db.readProgress.toArray(),
-    db.downloadedChapters.toArray(),
-    db.scrapeSources.toArray()
-  ]);
+  const collections = ['manga', 'chapters', 'libraryEntries', 'categories', 'readProgress', 'downloadedChapters', 'scrapeSources'] as const;
+  const data: any = {};
+
+  for (const name of collections) {
+    const snap = await getDocs(collection(db, name));
+    data[name] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+
+  const settingsSnap = await getDoc(doc(db, 'settings', 'app-settings'));
+  data.settings = settingsSnap.exists() ? settingsSnap.data() : {};
 
   const { updateSettings, ...settings } = useSettingsStore.getState();
 
   return {
     meta: {
-      version: 1,
+      version: supportedVersion,
       exportedAt: new Date().toISOString(),
       appVersion: '0.1.0',
       exportedBy: 'file',
     },
     data: {
-      manga,
-      chapters,
-      libraryEntries,
-      categories,
-      readProgress,
-      downloadedChapters,
-      scrapeSources,
-      settings: settings as any
-    }
+      manga: data.manga || [],
+      chapters: data.chapters || [],
+      libraryEntries: data.libraryEntries || [],
+      categories: data.categories || [],
+      readProgress: data.readProgress || [],
+      downloadedChapters: data.downloadedChapters || [],
+      scrapeSources: data.scrapeSources || [],
+      settings: data.settings || settings,
+    },
   };
 }
 
@@ -54,41 +50,42 @@ export function validateBackup(backup: unknown): ValidationResult {
 export async function importBackup(backup: BackupData, mode: ImportMode): Promise<void> {
   const { data } = backup;
 
-  await db.transaction('rw', [
-    db.manga,
-    db.chapters,
-    db.libraryEntries,
-    db.categories,
-    db.readProgress,
-    db.downloadedChapters,
-    db.scrapeSources
-  ], async () => {
-    if (mode === 'replace') {
-      await Promise.all([
-        db.manga.clear(),
-        db.chapters.clear(),
-        db.libraryEntries.clear(),
-        db.categories.clear(),
-        db.readProgress.clear(),
-        db.downloadedChapters.clear(),
-        db.scrapeSources.clear()
-      ]);
+  const writeOps: Promise<void>[] = [];
+
+  const collections = [
+    { name: 'manga', items: data.manga },
+    { name: 'chapters', items: data.chapters },
+    { name: 'libraryEntries', items: data.libraryEntries },
+    { name: 'categories', items: data.categories },
+    { name: 'readProgress', items: data.readProgress },
+    { name: 'downloadedChapters', items: data.downloadedChapters },
+    { name: 'scrapeSources', items: data.scrapeSources },
+  ] as const;
+
+  if (mode === 'replace') {
+    for (const { name } of collections) {
+      const existingSnap = await getDocs(collection(db, name));
+      existingSnap.docs.forEach((d) => {
+        deleteDoc(d.ref);
+      });
     }
+  }
 
-    const promises: Promise<any>[] = [];
+  for (const { name, items } of collections) {
+    if (items && items.length > 0) {
+      for (const item of items) {
+        const id = (item as any).id || (item as any).mangaId;
+        if (id) {
+          writeOps.push(setDoc(doc(db, name, id), item, { merge: true }));
+        }
+      }
+    }
+  }
 
-    if (data.manga?.length > 0) promises.push(db.manga.bulkPut(data.manga));
-    if (data.chapters?.length > 0) promises.push(db.chapters.bulkPut(data.chapters));
-    if (data.libraryEntries?.length > 0) promises.push(db.libraryEntries.bulkPut(data.libraryEntries));
-    if (data.categories?.length > 0) promises.push(db.categories.bulkPut(data.categories));
-    if (data.readProgress?.length > 0) promises.push(db.readProgress.bulkPut(data.readProgress));
-    if (data.downloadedChapters?.length > 0) promises.push(db.downloadedChapters.bulkPut(data.downloadedChapters));
-    if (data.scrapeSources?.length > 0) promises.push(db.scrapeSources.bulkPut(data.scrapeSources));
-
-    await Promise.all(promises);
-  });
+  await Promise.all(writeOps);
 
   if (data.settings && Object.keys(data.settings).length > 0) {
-    useSettingsStore.getState().updateSettings(data.settings);
+    await setDoc(doc(db, 'settings', 'app-settings'), data.settings, { merge: true });
+    useSettingsStore.getState().updateSettings(data.settings as any);
   }
 }

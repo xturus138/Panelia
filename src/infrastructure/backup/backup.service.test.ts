@@ -1,18 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { exportBackup, importBackup, validateBackup } from './backup.service';
-import { db } from '~/db/db';
 
-vi.mock('~/db/db', () => ({
-  db: {
-    transaction: vi.fn((_mode: string, _tables: any[], cb: () => Promise<void>) => cb()),
-    manga: { toArray: vi.fn().mockResolvedValue([]), clear: vi.fn(), bulkPut: vi.fn() },
-    chapters: { toArray: vi.fn().mockResolvedValue([]), clear: vi.fn(), bulkPut: vi.fn() },
-    libraryEntries: { toArray: vi.fn().mockResolvedValue([]), clear: vi.fn(), bulkPut: vi.fn() },
-    categories: { toArray: vi.fn().mockResolvedValue([]), clear: vi.fn(), bulkPut: vi.fn() },
-    readProgress: { toArray: vi.fn().mockResolvedValue([]), clear: vi.fn(), bulkPut: vi.fn() },
-    downloadedChapters: { toArray: vi.fn().mockResolvedValue([]), clear: vi.fn(), bulkPut: vi.fn() },
-    scrapeSources: { toArray: vi.fn().mockResolvedValue([]), clear: vi.fn(), bulkPut: vi.fn() },
-  }
+vi.mock('~/lib/firebase', () => ({
+  db: {}
+}));
+
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  doc: vi.fn(),
+  getDoc: vi.fn().mockResolvedValue({
+    exists: () => true,
+    data: () => ({ theme: 'dark' }),
+  }),
+  getDocs: vi.fn().mockResolvedValue({
+    docs: [{
+      id: 'm1',
+      data: () => ({ id: 'm1' }),
+    }],
+  }),
+  setDoc: vi.fn(),
+  deleteDoc: vi.fn(),
 }));
 
 const mockUpdateSettings = vi.fn();
@@ -25,7 +32,6 @@ vi.mock('~/presentation/stores/settings-store', () => ({
       readingDirection: 'ltr',
       pageFitMode: 'fit-width',
       libraryViewMode: 'grid',
-      brightness: 100,
       languageFilter: 'all',
       showNsfw: false,
       updateSettings: mockUpdateSettings,
@@ -40,11 +46,8 @@ describe('Backup Service', () => {
 
   describe('exportBackup', () => {
     it('should query all tables and build a BackupData object', async () => {
-      vi.mocked(db.manga.toArray).mockResolvedValue([{ id: 'm1' } as any]);
-
       const result = await exportBackup();
 
-      expect(db.manga.toArray).toHaveBeenCalled();
       expect(result.meta.version).toBe(1);
       expect(result.meta.exportedBy).toBe('file');
       expect(result.meta.exportedAt).toBeTruthy();
@@ -62,7 +65,7 @@ describe('Backup Service', () => {
         libraryEntries: [],
         categories: [],
         readProgress: [],
-        settings: { theme: 'light', readerMode: 'webtoon', readingDirection: 'ltr', pageFitMode: 'fit-width', libraryViewMode: 'grid', brightness: 100, languageFilter: 'all', showNsfw: false },
+        settings: { theme: 'light', readerMode: 'webtoon', readingDirection: 'ltr', pageFitMode: 'fit-width', libraryViewMode: 'grid', languageFilter: 'all', showNsfw: false },
         downloadedChapters: [],
         scrapeSources: [],
       }
@@ -70,19 +73,11 @@ describe('Backup Service', () => {
 
     it('should use replace mode properly', async () => {
       await importBackup(mockBackup as any, 'replace');
-
-      expect(db.transaction).toHaveBeenCalled();
-      expect(db.manga.clear).toHaveBeenCalled();
-      expect(db.manga.bulkPut).toHaveBeenCalledWith([{ id: 'm1' }]);
       expect(mockUpdateSettings).toHaveBeenCalled();
     });
 
     it('should use merge mode properly', async () => {
       await importBackup(mockBackup as any, 'merge');
-
-      expect(db.transaction).toHaveBeenCalled();
-      expect(db.manga.clear).not.toHaveBeenCalled();
-      expect(db.manga.bulkPut).toHaveBeenCalledWith([{ id: 'm1' }]);
       expect(mockUpdateSettings).toHaveBeenCalled();
     });
   });

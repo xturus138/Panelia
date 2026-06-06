@@ -1,38 +1,36 @@
-"use client"
+'use client';
 
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '~/db/db'
-import { Download, Trash2, FileText } from 'lucide-react'
-import { EmptyState } from '~/components/common/EmptyState'
-import Link from 'next/link'
+import { useFirestoreCollection } from '~/hooks/useFirestoreQuery';
+import { Download, FileText } from 'lucide-react';
+import { EmptyState } from '~/components/common/EmptyState';
+import Link from 'next/link';
+import type { DownloadedChapter, Manga } from '~/domain/types';
+import { useMemo } from 'react';
+import { MangaCover } from '~/components/common/MangaCover';
 
 export default function DownloadsPage() {
-  const downloadedChapters = useLiveQuery(() =>
-    db.downloadedChapters.toArray()
-  )
+  const downloadedChapters = useFirestoreCollection<DownloadedChapter>('downloadedChapters');
+  const allManga = useFirestoreCollection<Manga>('manga');
 
-  // Get manga info for each downloaded chapter
-  const downloadedWithManga = useLiveQuery(async () => {
-    if (!downloadedChapters) return []
-    const result = []
-    for (const dc of downloadedChapters) {
-      const manga = await db.manga.get(dc.mangaId)
-      result.push({ ...dc, manga })
-    }
-    return result
-  }, [downloadedChapters])
+  const downloadedWithManga = useMemo(() => {
+    if (!downloadedChapters || !allManga) return undefined;
+    const mangaMap = new Map(allManga.map((m) => [m.id, m]));
+    return downloadedChapters.map((dc) => ({
+      ...dc,
+      manga: mangaMap.get(dc.mangaId),
+    }));
+  }, [downloadedChapters, allManga]);
 
   if (downloadedWithManga === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <p className="text-muted-foreground">Loading...</p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="px-4 pt-6 pb-4">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-[28px] font-bold text-foreground leading-tight">Downloads</h1>
         <p className="text-[13px] text-muted-foreground mt-1">
@@ -40,7 +38,6 @@ export default function DownloadsPage() {
         </p>
       </div>
 
-      {/* Downloads List */}
       {downloadedWithManga.length === 0 ? (
         <EmptyState
           icon={Download}
@@ -55,50 +52,24 @@ export default function DownloadsPage() {
               className="bg-card rounded-xl p-4 shadow-sm flex items-center gap-3 relative group"
             >
               <Link href={`/reader/${encodeURIComponent(dc.chapterId)}`} className="absolute inset-0 z-0" />
-              {/* Thumbnail */}
               {dc.manga?.coverUrl && (
                 <div className="w-12 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative z-10">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={dc.manga.coverUrl}
-                    alt={dc.manga.title}
-                    className="w-full h-full object-cover"
-                  />
+                  <MangaCover url={dc.manga.coverUrl} title={dc.manga.title} />
                 </div>
               )}
-
-              {/* Info */}
               <div className="flex-1 min-w-0 relative z-10">
-                <p className="font-medium text-[14px] text-card-foreground truncate">
-                  {dc.manga?.title || 'Unknown Manga'}
-                </p>
-                <p className="text-[12px] text-muted-foreground flex items-center gap-1 mt-1">
-                  <FileText className="w-3 h-3" />
-                  Chapter {dc.chapterId.split(':').pop()?.replace('ch', '')}
-                </p>
-                <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-                  {(dc.sizeBytes / 1024 / 1024).toFixed(1)} MB
+                <p className="font-medium text-sm text-foreground truncate">{dc.manga?.title ?? 'Unknown'}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Downloaded {new Date(dc.downloadedAt).toLocaleDateString()}
                 </p>
               </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 relative z-10">
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    if (confirm('Delete this download?')) {
-                      await db.downloadedChapters.delete(dc.id)
-                    }
-                  }}
-                  className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              <div className="shrink-0 relative z-10">
+                <FileText className="w-4 h-4 text-muted-foreground" />
               </div>
             </div>
           ))}
         </div>
       )}
     </div>
-  )
+  );
 }

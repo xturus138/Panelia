@@ -3,8 +3,7 @@
 import { useLibrary } from '~/hooks/useLibrary'
 import { MangaCard } from '~/components/library/MangaCard'
 import { Search, RefreshCw, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '~/db/db'
+import { useFirestoreCollection } from '~/hooks/useFirestoreQuery'
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { syncChapters } from '~/db/sync'
 import { useToast } from '~/hooks/useToast'
@@ -12,6 +11,7 @@ import { useSettingsStore, useLibraryStore } from '~/presentation/stores'
 import { LayoutGrid, List, ArrowUpDown, Folder } from 'lucide-react'
 import { EmptyState } from '~/components/common/EmptyState'
 import type { LibrarySortMode } from '~/presentation/stores/library-store'
+import type { Category, Chapter } from '~/domain/types'
 import Link from 'next/link'
 
 const PAGE_SIZE = 24
@@ -25,7 +25,11 @@ export default function LibraryPage() {
   const { libraryViewMode, updateSettings } = useSettingsStore()
   const { sortMode, setSortMode, activeCategoryId, setActiveCategory } = useLibraryStore()
 
-  const categories = useLiveQuery(() => db.categories.orderBy('sortOrder').toArray())
+  const categories = useFirestoreCollection<Category>('categories')
+  const categoriesList = useMemo(() => {
+    if (!categories) return undefined;
+    return [...categories].sort((a, b) => (a as any).sortOrder - (b as any).sortOrder);
+  }, [categories])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [showSortMenu, setShowSortMenu] = useState(false)
@@ -142,16 +146,15 @@ export default function LibraryPage() {
     }
   }, [mangaList, handleRefresh, toast])
 
-  // Get chapter counts for each manga
-  const chapterCounts = useLiveQuery(async () => {
-    if (!libraryEntries) return {}
+  const allChapters = useFirestoreCollection<Chapter>('chapters')
+  const chapterCounts = useMemo(() => {
+    if (!allChapters) return {}
     const counts: Record<string, number> = {}
-    for (const entry of libraryEntries) {
-      const count = await db.chapters.where('mangaId').equals(entry.mangaId).count()
-      counts[entry.mangaId] = count
-    }
+    allChapters.forEach((c) => {
+      counts[c.mangaId] = (counts[c.mangaId] || 0) + 1
+    })
     return counts
-  }, [libraryEntries])
+  }, [allChapters])
 
   if (mangaList === undefined) {
     return (
@@ -247,7 +250,7 @@ export default function LibraryPage() {
         >
           All
         </button>
-        {(categories ?? []).map((cat) => (
+        {(categoriesList ?? []).map((cat) => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}

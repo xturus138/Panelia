@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 import { useSettingsStore } from '~/presentation/stores'
 import { useTheme } from 'next-themes'
 import { Moon, Sun, Monitor, Book, Globe, Eye, Trash2, ChevronRight, Download, Upload } from 'lucide-react'
-import { db } from '~/db/db'
+import { db } from '~/lib/firebase'
+import { terminate, clearIndexedDbPersistence } from 'firebase/firestore'
 import { useToast } from '~/hooks/useToast'
 import { exportBackup, importBackup, validateBackup, fileAdapter } from '~/infrastructure/backup'
 
@@ -264,29 +265,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Brightness Section */}
-        <section className="bg-card rounded-xl p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
-            <Sun className="w-4 h-4" />
-            Brightness
-          </h2>
-          <div className="flex items-center gap-4">
-            <span className="text-[13px] text-muted-foreground w-8">50%</span>
-            <input
-              type="range"
-              min={50}
-              max={150}
-              value={settings.brightness}
-              onChange={(e) => settings.updateSettings({ brightness: Number(e.target.value) })}
-              className="flex-1 h-1.5 appearance-none bg-secondary rounded-full cursor-pointer accent-primary"
-              aria-label="Brightness"
-            />
-            <span className="text-[13px] text-muted-foreground w-8 text-right">150%</span>
-          </div>
-          <p className="text-[12px] text-muted-foreground mt-2">
-            Adjust reader screen brightness
-          </p>
-        </section>
 
         {/* Backup & Restore */}
         <section className="bg-card rounded-xl p-4 shadow-sm">
@@ -400,9 +378,10 @@ export default function SettingsPage() {
             onClick={async () => {
               if (confirm('Are you sure you want to clear all local data? This cannot be undone.')) {
                 try {
-                  await db.delete();
-                  await db.open();
-                  toast.success('Local data cleared successfully');
+                  await terminate(db);
+                  await clearIndexedDbPersistence(db);
+                  toast.success('Local data cleared successfully. Reloading...');
+                  setTimeout(() => window.location.reload(), 1500);
                 } catch (err) {
                   toast.error('Failed to clear data: ' + (err instanceof Error ? err.message : String(err)));
                 }

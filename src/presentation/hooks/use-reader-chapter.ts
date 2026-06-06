@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { db } from '~/db/db';
+import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { db } from '~/lib/firebase';
 import { sourceRegistry } from '~/infrastructure/sources';
 import { statusService } from '~/infrastructure/services';
 import { getScrapeSession, type ChapterInfo } from '~/services/scrape/sessionStore';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
 import { useSettingsStore } from '~/presentation/stores';
 import type { Page } from '~/domain/types';
-
 import { downloadManager } from '~/services/downloads/download-manager';
 
 export type ReadingMode = 'vertical-scroll' | 'webtoon' | 'single-page' | 'horizontal-swipe';
@@ -63,7 +63,6 @@ export function useReaderChapterViewModel(
   const sourceId = chapterId.startsWith('scrape:') ? chapterId.split(':')[1] : '';
 
   const loadScrapeChapter = useCallback(async () => {
-    console.log('[Reader] loadScrapeChapter START, chapterId:', chapterId);
     setLoading(true);
     setError(null);
     const loadingToast = toast.loading('Mencari chapter...');
@@ -75,18 +74,15 @@ export function useReaderChapterViewModel(
 
       const sId = parts[1];
       const registrySourceId = `scrape:${sId}`;
-      console.log('[Reader] sId:', sId, 'registrySourceId:', registrySourceId);
 
-      const chapter = await db.chapters.get(chapterId);
-      console.log('[Reader] db.chapters.get:', chapter ? 'found' : 'null');
+      const chapterSnap = await getDoc(doc(db, 'chapters', chapterId));
+      const chapter = chapterSnap.exists() ? chapterSnap.data() as any : null;
       if (chapter) {
         if (chapter.lastReadPage) setCurrentPageIndex(chapter.lastReadPage);
         if (chapter.status) setChapterStatus(chapter.status);
       }
 
-      // Check downloaded pages first
       const offlinePages = await downloadManager.getDownloadedPages(chapterId);
-      console.log('[Reader] offlinePages:', offlinePages ? `found ${offlinePages.length}` : 'null');
       if (offlinePages) {
         setPages(offlinePages);
         loadingToast.dismiss();
@@ -95,36 +91,30 @@ export function useReaderChapterViewModel(
       }
 
       let url = chapter?.url;
-      console.log('[Reader] url from chapter:', url || 'null');
       let adapter: ScrapeAdapter | null = null;
 
       if (!url) {
         const session = getScrapeSession(sId);
-        console.log('[Reader] session:', session ? 'found' : 'null');
         if (session) {
           url = session.chapterUrls[chapterId];
-          console.log('[Reader] url from session:', url || 'null');
           adapter = new ScrapeAdapter(sId, session.config, session.baseUrl);
         }
       }
 
       if (!adapter) {
-        console.log('[Reader] adapter not from session, trying sourceRegistry...');
         const provider = sourceRegistry.getOrRehydrate(registrySourceId);
         adapter = provider instanceof ScrapeAdapter ? provider : null;
         if (!adapter) {
-          console.log('[Reader] not in registry, trying db.scrapeSources...');
-          const savedSource = await db.scrapeSources.get(sId);
-          if (savedSource) {
+          const savedSourceSnap = await getDoc(doc(db, 'scrapeSources', sId));
+          if (savedSourceSnap.exists()) {
+            const savedSource = savedSourceSnap.data() as any;
             sourceRegistry.registerScrapeSource(savedSource.id, savedSource.config, savedSource.baseUrl);
             adapter = sourceRegistry.get(registrySourceId) as ScrapeAdapter | null;
           }
         }
         if (!adapter) {
-          console.log('[Reader] not in db, trying builtin presets...');
           const { getPreset } = await import('~/services/scrape/presets');
           const preset = getPreset(sId.replace('preset-', ''));
-          console.log('[Reader] preset:', preset ? preset.name : 'null');
           if (preset) {
             adapter = new ScrapeAdapter(sId, preset.config, preset.baseUrl);
           }
@@ -133,70 +123,49 @@ export function useReaderChapterViewModel(
       }
 
       if (!url) {
-        // Fallback: Try to reconstruct manga URL and fetch it to find chapter URL
         const mangaIdParam = searchParams.get('manga');
-        console.log('[Reader] url still missing, trying fallback... mangaIdParam:', mangaIdParam);
         if (mangaIdParam && mangaIdParam.startsWith('scrape:')) {
           const mangaParts = mangaIdParam.split(':');
           const mangaUrlSlug = mangaParts.slice(2).join(':');
-          console.log('[Reader] mangaUrlSlug:', mangaUrlSlug);
           if (mangaUrlSlug) {
             const baseUrl = adapter.sourceUrl;
-            console.log('[Reader] baseUrl:', baseUrl);
             const liveMangaUrl = `${baseUrl.replace(/\/+$/, '')}/manga/${mangaUrlSlug}/`;
-            console.log('[Reader] liveMangaUrl:', liveMangaUrl);
 
             const res = await fetch(`/api/proxy?url=${encodeURIComponent(liveMangaUrl)}`);
-            console.log('[Reader] manga fetch status:', res.status);
             if (res.ok) {
               const html = await res.text();
-              console.log('[Reader] html length:', html.length);
               const processedHtml = html
                 .replace(/<head>/i, `<head><base href="${liveMangaUrl}" />`)
                 .replace(/\sdata-(?:src|lazy-src|original)\s*=\s*(['"])(.*?)\1/gi,
                   (_, quote, val) => ` src=${quote}${val}${quote} data-processed="true"`);
               const parsedManga = adapter.parseMangaPage(processedHtml);
-              console.log('[Reader] parsed chapters count:', parsedManga.chapters.length);
               const matchedChapter = parsedManga.chapters.find(c => c.id === chapterId);
-              console.log('[Reader] matchedChapter:', matchedChapter ? matchedChapter.title : 'null');
               if (matchedChapter) url = matchedChapter.url;
-            } else {
-              console.error('[Reader] manga fetch failed:', await res.text().then(t => t.slice(0, 200)));
             }
           }
         }
       }
 
       if (!url) {
-        console.error('[Reader] FINAL: url still null after all attempts');
         throw new Error('Chapter URL not found and could not be recovered');
       }
-      console.log('[Reader] url resolved:', url);
 
-      console.log('[Reader] fetching chapter page...');
       const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
-      console.log('[Reader] chapter fetch status:', response.status);
       if (!response.ok) {
         const errText = await response.text();
-        console.error('[Reader] chapter fetch error:', errText.slice(0, 500));
-        throw new Error(`Gagal mengambil chapter: HTTP ${response.status}`);
+        throw new Error(`Gagal mengambil chapter: HTTP ${response.status} ${errText.slice(0, 200)}`);
       }
       const html = await response.text();
-      console.log('[Reader] chapter html length:', html.length);
 
       const scrapedPages = adapter.parseChapterPage(html);
-      console.log('[Reader] scrapedPages count:', scrapedPages.length);
-      // Use full chapter URL as Referer for better CDN/anti-hotlink compatibility
       const refererUrl = url;
 
       setPages(scrapedPages.map((page) => ({
         index: page.index,
         imageUrl: `/api/proxy?url=${encodeURIComponent(page.imageUrl)}&referer=${encodeURIComponent(refererUrl)}`,
       })));
-      console.log('[Reader] SUCCESS: setPages called with', scrapedPages.length, 'pages');
       loadingToast.dismiss();
     } catch (err) {
-      console.error('[Reader] loadScrapeChapter ERROR:', err);
       loadingToast.dismiss();
       setError(err instanceof Error ? err.message : 'Unknown error');
       setPages([]);
@@ -228,7 +197,7 @@ export function useReaderChapterViewModel(
       sourceUrl: session.sourceUrl,
       chapters: [...session.chapters].sort((a, b) => a.chapterNumber - b.chapterNumber),
     });
-    void db.libraryEntries.get(session.mangaId).then((entry) => setSavedInLib(Boolean(entry)));
+    void getDoc(doc(db, 'libraryEntries', session.mangaId)).then((snap) => setSavedInLib(Boolean(snap.exists())));
   }, [sourceId]);
 
   useEffect(() => {
@@ -294,15 +263,16 @@ export function useReaderChapterViewModel(
         return;
       }
 
-      await db.scrapeSources.put({
+      await db.collection('scrapeSources');
+      await setDoc(doc(db, 'scrapeSources', mangaInfo.sourceId), {
         id: mangaInfo.sourceId,
         name: mangaInfo.title,
         baseUrl: session.baseUrl,
         config: session.config,
         createdAt: new Date().toISOString(),
-      });
+      }, { merge: true });
 
-      await db.manga.put({
+      await setDoc(doc(db, 'manga', mangaInfo.mangaId), {
         id: mangaInfo.mangaId,
         sourceId: 'scrape',
         title: mangaInfo.title,
@@ -314,7 +284,7 @@ export function useReaderChapterViewModel(
         genres: [],
         tags: [],
         url: mangaInfo.sourceUrl,
-      } as any);
+      } as any, { merge: true });
 
       const chapterRows = [...mangaInfo.chapters]
         .sort((a, b) => a.chapterNumber - b.chapterNumber)
@@ -331,14 +301,14 @@ export function useReaderChapterViewModel(
           url: session.chapterUrls[ch.id] || '',
           status: 'unread' as const,
         }));
-      await db.chapters.bulkPut(chapterRows);
+      await Promise.all(chapterRows.map((row) => setDoc(doc(db, 'chapters', row.id), row, { merge: true })));
 
-      await db.libraryEntries.put({
+      await setDoc(doc(db, 'libraryEntries', mangaInfo.mangaId), {
         mangaId: mangaInfo.mangaId,
         categories: [],
         dateAdded: new Date().toISOString(),
         unreadCount: chapterRows.length,
-      });
+      }, { merge: true });
 
       setSavedInLib(true);
       loadingToast.dismiss();

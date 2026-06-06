@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '~/db/db';
-import { isInLibrary, toggleInLibrary } from '~/db/library';
+import { useFirestoreCollection } from '~/hooks/useFirestoreQuery';
+import { getDoc, doc, collection, getDocs, query, where } from 'firebase/firestore';
+import { db as firestore } from '~/lib/firebase';
+import { isInLibrary, toggleInLibrary } from '~/infrastructure/db/library';
 import { sourceRegistry } from '~/infrastructure/sources';
 import { statusService } from '~/infrastructure/services';
 import { useReaderStore } from '~/presentation/stores';
 import { setScrapeSession } from '~/services/scrape/sessionStore';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
-import type { Chapter, Manga, ReadStatus } from '~/domain/types';
+import type { Chapter, Manga, ReadStatus, LibraryEntry } from '~/domain/types';
 
 const NOISE_PATTERNS = [/\/jp\.png/, /\/kr\.png/, /\/cn\.png/, /\/logo/, /\/icon/];
 const COVER_FALLBACK = 'https://placehold.co/400x600/1a1a1a/cccccc?text=No+Cover';
@@ -46,7 +47,11 @@ export function useMangaDetailsViewModel(id: string) {
   const [loadingChapterId, setLoadingChapterId] = useState<string | null>(null);
   const setReaderOpen = useReaderStore((state) => state.setReaderOpen);
 
-  const libraryEntry = useLiveQuery(() => (id ? db.libraryEntries.get(id) : undefined), [id]);
+  const libraryEntry = useFirestoreCollection<LibraryEntry>('libraryEntries');
+  const currentLibraryEntry = useMemo(() => {
+    if (!libraryEntry) return undefined;
+    return libraryEntry.find((e) => e.mangaId === id);
+  }, [libraryEntry, id]);
 
   const openReader = useCallback((chapterId: string) => {
     setReaderUrl(`/reader/${encodeURIComponent(chapterId)}?manga=${encodeURIComponent(id)}`);
@@ -67,34 +72,31 @@ export function useMangaDetailsViewModel(id: string) {
       setLoading(true);
       try {
         if (sourceId.startsWith('scrape')) {
-          // 1. Try DB first (saved library manga)
-          const [dbManga, dbChapters, inLibrary] = await Promise.all([
-            db.manga.get(id),
-            db.chapters.where('mangaId').equals(id).toArray(),
-            isInLibrary(id),
-          ]);
+          const dbMangaSnap = await getDoc(doc(firestore, 'manga', id));
+          const chaptersSnap = await getDocs(query(collection(firestore, 'chapters'), where('mangaId', '==', id)));
+          const dbManga = dbMangaSnap.exists() ? dbMangaSnap.data() as Manga : null;
+          const dbChapters = chaptersSnap.docs.map((d) => d.data() as Chapter);
+          const inLibrary = await isInLibrary(id);
 
           if (dbManga) {
             setManga(dbManga as Manga);
-            setChapters((dbChapters as Chapter[]).sort((a, b) => b.chapterNumber - a.chapterNumber));
+            setChapters(dbChapters.sort((a, b) => b.chapterNumber - a.chapterNumber));
             setInLib(inLibrary);
             return;
           }
 
-          // 2. DB miss — live scrape from source
-          const scrapeKey = parts[1]; // e.g. "preset-komiku"
+          const scrapeKey = parts[1];
           let adapter: ScrapeAdapter | null = null;
           let baseUrl = '';
-          let liveUrl = '';
 
-          // Resolve adapter from sourceRegistry or DB storage
           const provider = sourceRegistry.getOrRehydrate(sourceId);
           if (provider instanceof ScrapeAdapter) {
             adapter = provider;
-            baseUrl = adapter['sourceUrl']; // hacky — expose properly later
+            baseUrl = adapter['sourceUrl'];
           } else {
-            const savedSource = await db.scrapeSources.get(scrapeKey);
-            if (savedSource) {
+            const savedSourceSnap = await getDoc(doc(firestore, 'scrapeSources', scrapeKey));
+            if (savedSourceSnap.exists()) {
+              const savedSource = savedSourceSnap.data() as any;
               sourceRegistry.registerScrapeSource(savedSource.id, savedSource.config, savedSource.baseUrl);
               const reg = sourceRegistry.get(sourceId);
               if (reg instanceof ScrapeAdapter) {
@@ -105,7 +107,6 @@ export function useMangaDetailsViewModel(id: string) {
           }
 
           if (!adapter) {
-            // Try to reconstruct from builtin preset
             const { getPreset } = await import('~/services/scrape/presets');
             const preset = getPreset(scrapeKey.replace('preset-', ''));
             if (preset) {
@@ -115,31 +116,22 @@ export function useMangaDetailsViewModel(id: string) {
           }
           if (!adapter) throw new Error('Tidak dapat menemukan konfigurasi sumber manga');
 
-          // Build manga URL from id (last part after the scrape: prefix parts)
-          // id format: scrape:preset-komiku:604cmo
           const mangaUrlSlug = parts.slice(2).join(':');
           if (!mangaUrlSlug) throw new Error('ID manga tidak lengkap');
 
-          liveUrl = `${baseUrl.replace(/\/+$/, '')}/manga/${mangaUrlSlug}/`;
-
-          // 3. Fetch manga page HTML via proxy
+          const liveUrl = `${baseUrl.replace(/\/+$/, '')}/manga/${mangaUrlSlug}/`;
           const res = await fetch(`/api/proxy?url=${encodeURIComponent(liveUrl)}`);
           if (!res.ok) throw new Error(`Gagal mengambil manga: HTTP ${res.status}`);
           const html = await res.text();
 
-          // 4. Preprocess HTML (same pattern as BrowsePage)
           const processedHtml = html
             .replace(/<head>/i, `<head><base href="${liveUrl}" />`)
             .replace(/\sdata-(?:src|lazy-src|original)\s*=\s*(['"])(.*?)\1/gi,
               (_, quote: string, val: string) => ` src=${quote}${val}${quote} data-processed="true"`);
 
-          // 5. Parse
           const parsed = adapter.parseMangaPage(processedHtml);
-
-          // 6. Validate cover URL
           const validatedCover = parsed.coverUrl ? await validateCoverUrl(parsed.coverUrl) : '';
 
-          // 7. Register live session so reader can resolve chapter URLs
           const chapterUrls: Record<string, string> = {};
           for (const ch of parsed.chapters) {
             chapterUrls[ch.id] = ch.url;
@@ -156,7 +148,6 @@ export function useMangaDetailsViewModel(id: string) {
             parsed.chapters.map((ch) => ({ id: ch.id, title: ch.title, chapterNumber: ch.chapterNumber }))
           );
 
-          // 8. Set state with parsed data
           const mangaFromParse: Manga = {
             id: parsed.id,
             sourceId: 'scrape',
@@ -201,14 +192,16 @@ export function useMangaDetailsViewModel(id: string) {
           return;
         }
 
-        const [m, c, l, localChapters] = await Promise.all([
+        const [m, c, l] = await Promise.all([
           provider.getMangaDetails(mangaId),
           provider.getChapters(mangaId),
           isInLibrary(id),
-          db.chapters.where('mangaId').equals(id).toArray(),
         ]);
 
+        const localChaptersSnap = await getDocs(query(collection(firestore, 'chapters'), where('mangaId', '==', id)));
+        const localChapters = localChaptersSnap.docs.map((d) => d.data() as Chapter);
         const localMap = new Map(localChapters.map((chapter) => [chapter.id, chapter]));
+
         setManga({ ...m, id, sourceId });
         setChapters(
           c
@@ -245,7 +238,8 @@ export function useMangaDetailsViewModel(id: string) {
     if (!manga) return;
     setLoadingChapterId(chapterId);
     await statusService.markChapterStatus(chapterId, id, nextStatus, 0);
-    const updated = await db.chapters.get(chapterId);
+    const updatedSnap = await getDoc(doc(firestore, 'chapters', chapterId));
+    const updated = updatedSnap.exists() ? updatedSnap.data() as Chapter : null;
     if (updated) {
       setChapters((prev) => prev.map((chapter) => (chapter.id === chapterId ? (updated as Chapter) : chapter)));
     }
@@ -259,9 +253,9 @@ export function useMangaDetailsViewModel(id: string) {
   }, [chapters]);
 
   const lastViewedChapter = useMemo(() => {
-    if (!libraryEntry?.lastViewedChapterId) return null;
-    return chapters.find((chapter) => chapter.id === libraryEntry.lastViewedChapterId) ?? null;
-  }, [chapters, libraryEntry]);
+    if (!currentLibraryEntry?.lastViewedChapterId) return null;
+    return chapters.find((chapter) => chapter.id === currentLibraryEntry.lastViewedChapterId) ?? null;
+  }, [chapters, currentLibraryEntry]);
 
   return {
     manga,
@@ -270,7 +264,7 @@ export function useMangaDetailsViewModel(id: string) {
     loading,
     readerUrl,
     loadingChapterId,
-    libraryEntry,
+    libraryEntry: currentLibraryEntry,
     readCounts,
     lastViewedChapter,
     openReader,

@@ -5,6 +5,7 @@ import { ThemeProvider } from "~/components/layout/ThemeProvider";
 import { BottomNav } from "~/components/layout/BottomNav";
 import { ServiceWorkerRegistrar } from "~/components/layout/ServiceWorkerRegistrar";
 import { ToastContainer } from "~/components/ui/ToastContainer";
+import { DbMigration } from "~/components/layout/DbMigration";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <DbMigration />
           <ServiceWorkerRegistrar />
           <main className="pb-24">{children}</main>
           <BottomNav />

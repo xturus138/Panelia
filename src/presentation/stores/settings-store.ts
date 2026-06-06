@@ -15,7 +15,6 @@ export const useSettingsStore = create<SettingsState>()(
       readingDirection: 'ltr',
       pageFitMode: 'fit-width',
       libraryViewMode: 'grid',
-      brightness: 100,
       languageFilter: 'all',
       showNsfw: false,
       lastBackupAt: null,
