@@ -1,6 +1,6 @@
 import type { SourceProvider } from '~/domain/interfaces';
-import { mangadexProvider } from '~/services/sources/mangadex';
-import { comickProvider } from '~/services/sources/comick';
+import { mangadexModule } from '~/services/sources/mangadex/module';
+import { comickModule } from '~/services/sources/comick/module';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
 import type { SiteConfig } from '~/services/scrape/types';
 import { getPreset, presetToScrapeSource } from '~/services/scrape/presets';
@@ -13,10 +13,13 @@ export interface SourceProviderEntry {
   isScrape?: boolean;
 }
 
-const STATIC_PROVIDERS: SourceProviderEntry[] = [
-  { id: mangadexProvider.id, name: mangadexProvider.name, provider: mangadexProvider },
-  { id: comickProvider.id, name: comickProvider.name, provider: comickProvider },
-];
+const STATIC_PROVIDER_MODULES = [mangadexModule, comickModule];
+
+const STATIC_PROVIDERS: SourceProviderEntry[] = STATIC_PROVIDER_MODULES.map((mod) => ({
+  id: mod.id,
+  name: mod.name,
+  provider: mod.provider,
+}));
 
 const SCRAPE_PREFIX = 'scrape:';
 
@@ -97,4 +100,5 @@ class SourceRegistry {
 }
 
 export const sourceRegistry = new SourceRegistry();
-export { mangadexProvider, comickProvider };
+export const mangadexProvider = mangadexModule.provider;
+export const comickProvider = comickModule.provider;

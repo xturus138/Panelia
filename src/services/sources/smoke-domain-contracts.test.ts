@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Manga, Chapter, AppSettings } from '~/domain/types';
 import type { SourceProvider } from '~/domain/interfaces';
 import type { Manga as CompatManga, Chapter as CompatChapter, AppSettings as CompatSettings } from '~/types';
+import { mangadexModule } from '~/services/sources/mangadex/module';
+import { comickModule } from '~/services/sources/comick/module';
 
 describe('domain contract entrypoints', () => {
   it('exposes domain types and source provider contract from new paths', () => {
@@ -97,5 +99,15 @@ describe('domain contract entrypoints', () => {
     expect(compatManga.title).toBe('Compat Test');
     expect(compatSettings.readerMode).toBe('single-page');
     expect(compatChapter.chapterNumber).toBe(1);
+  });
+
+  it('exports isolated source modules with normalized metadata', () => {
+    expect(mangadexModule.id).toBe('mangadex');
+    expect(mangadexModule.name).toBe('MangaDex');
+    expect(typeof mangadexModule.provider.getPopular).toBe('function');
+
+    expect(comickModule.id).toBe('comick');
+    expect(comickModule.name).toBe('Comick');
+    expect(typeof comickModule.provider.getPopular).toBe('function');
   });
 });
