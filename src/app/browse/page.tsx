@@ -113,7 +113,9 @@ export default function BrowsePage() {
       provider: src.provider
     }));
 
-    setSources([...nativeSources, ...scrapeSources]);
+    const all = [...nativeSources, ...scrapeSources];
+    console.log('[BrowsePage] loaded sources:', all.map(s => s.id));
+    setSources(all);
   }, []);
 
   useEffect(() => {
@@ -168,9 +170,11 @@ export default function BrowsePage() {
   // When source changes, reset view and set default config
   useEffect(() => {
     if (!activeSource) {
+      console.log('[BrowsePage] no active source');
       setView("sources");
       return;
     }
+    console.log('[BrowsePage] active source changed:', activeSource.id, activeSource.name);
     setView("search");
     setResults([]);
     setMangaData(null);
