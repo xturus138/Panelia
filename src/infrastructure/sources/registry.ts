@@ -1,6 +1,7 @@
 import type { SourceProvider } from '~/domain/interfaces';
 import { mangadexProvider } from '~/services/sources/mangadex';
 import { comickProvider } from '~/services/sources/comick';
+import { comixProvider } from '~/services/sources/comix';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
 import type { SiteConfig } from '~/services/scrape/types';
 import { getPreset, presetToScrapeSource } from '~/services/scrape/presets';
@@ -16,6 +17,7 @@ export interface SourceProviderEntry {
 const STATIC_PROVIDERS: SourceProviderEntry[] = [
   { id: 'mangadex', name: 'MangaDex', provider: mangadexProvider },
   { id: 'comick', name: 'Comick', provider: comickProvider },
+  { id: 'comix', name: 'Comix', provider: comixProvider },
 ];
 
 const SCRAPE_PREFIX = 'scrape:';
@@ -97,4 +99,4 @@ class SourceRegistry {
 }
 
 export const sourceRegistry = new SourceRegistry();
-export { mangadexProvider, comickProvider };
+export { mangadexProvider, comickProvider, comixProvider };

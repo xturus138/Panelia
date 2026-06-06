@@ -37,7 +37,6 @@ describe('domain contract entrypoints', () => {
       readingDirection: 'ltr',
       pageFitMode: 'fit-width',
       libraryViewMode: 'grid',
-      brightness: 100,
       languageFilter: 'all',
       showNsfw: false,
     };
@@ -89,7 +88,6 @@ describe('domain contract entrypoints', () => {
       readingDirection: 'rtl',
       pageFitMode: 'fit-height',
       libraryViewMode: 'list',
-      brightness: 100,
       languageFilter: 'all',
       showNsfw: false,
     };
