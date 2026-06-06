@@ -320,11 +320,18 @@ export default function BrowsePage() {
         return;
       }
 
-      const { db } = await import("~/db/db");
       const { sourceRegistry } = await import("~/infrastructure/sources");
+      const { saveScrapeSource } = await import("~/infrastructure/db/scrape-sources");
+      const { saveManga } = await import("~/infrastructure/db/manga");
+      const { saveChapters } = await import("~/infrastructure/db/chapters");
+      const { toggleInLibrary } = await import("~/infrastructure/db/library");
+
+      const { auth } = await import('~/lib/firebase');
+      const currentUid = auth.currentUser?.uid;
+      if (!currentUid) { loading.dismiss(); toast.error('Login required'); return; }
 
       // Save scrape source config
-      await db.scrapeSources.put({
+      await saveScrapeSource(currentUid, {
         id: activeSource.id,
         name: config.name || mangaData.title,
         baseUrl: config.baseUrl,
@@ -332,7 +339,7 @@ export default function BrowsePage() {
         createdAt: new Date().toISOString(),
       });
 
-      // Save manga to DB
+      // Save manga to Firestore
       const validatedCover = await validateCoverUrl(mangaData.coverUrl);
       mangaData.coverUrl = validatedCover; // keep in sync
       const mangaRow: Manga = {
@@ -348,7 +355,7 @@ export default function BrowsePage() {
         tags: mangaData.tags,
         url: currentUrl,
       };
-      await db.manga.put(mangaRow);
+      await saveManga(currentUid, mangaRow);
 
       // Save chapters
       const chapterRows = mangaData.chapters.map((ch) => ({
@@ -364,15 +371,10 @@ export default function BrowsePage() {
         url: ch.url,
         status: 'unread' as const,
       }));
-      await db.chapters.bulkPut(chapterRows);
+      await saveChapters(currentUid, chapterRows);
 
       // Add to library
-      await db.libraryEntries.put({
-        mangaId: mangaData.id,
-        categories: [],
-        dateAdded: new Date().toISOString(),
-        unreadCount: chapterRows.length,
-      });
+      await toggleInLibrary(currentUid, mangaRow, chapterRows);
 
       // Register with sourceRegistry
       sourceRegistry.registerScrapeSource(activeSource.id, config, currentUrl);

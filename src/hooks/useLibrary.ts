@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
+import { useAuth } from '~/lib/auth-context';
 import { useFirestoreCollection, useFirestoreDoc } from './useFirestoreQuery';
 import type { LibraryEntry, Manga } from '~/types';
-import { useMemo } from 'react';
 
 export function useLibrary() {
-  const libraryEntries = useFirestoreCollection<LibraryEntry>('libraryEntries');
-  const allManga = useFirestoreCollection<Manga>('manga');
+  const { uid } = useAuth();
+  const libraryEntries = useFirestoreCollection<LibraryEntry>(uid, 'libraryEntries');
+  const allManga = useFirestoreCollection<Manga>(uid, 'manga');
 
   const mangaList = useMemo(() => {
     if (!libraryEntries || !allManga) return undefined;
@@ -16,5 +18,6 @@ export function useLibrary() {
 }
 
 export function useManga(id: string | undefined) {
-  return useFirestoreDoc<Manga>('manga', id);
+  const { uid } = useAuth();
+  return useFirestoreDoc<Manga>(uid, 'manga', id);
 }

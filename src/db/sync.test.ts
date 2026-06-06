@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { syncChapters } from './sync';
 
 vi.mock('~/lib/firebase', () => ({
-  db: {}
+  db: {},
+  auth: { currentUser: { uid: 'test-user' } }
 }));
 
 vi.mock('firebase/firestore', () => ({

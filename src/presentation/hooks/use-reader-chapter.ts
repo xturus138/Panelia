@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { doc, getDoc, getDocs, collection, query, where, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from '~/infrastructure/db/db-gateway';
 import { db } from '~/lib/firebase';
 import { sourceRegistry } from '~/infrastructure/sources';
 import { statusService } from '~/infrastructure/services';
@@ -9,6 +9,7 @@ import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
 import { useSettingsStore } from '~/presentation/stores';
 import type { Page } from '~/domain/types';
 import { downloadManager } from '~/services/downloads/download-manager';
+import { useAuth } from '~/lib/auth-context';
 
 export type ReadingMode = 'vertical-scroll' | 'webtoon' | 'single-page' | 'horizontal-swipe';
 
@@ -27,6 +28,7 @@ export function useReaderChapterViewModel(
     success: (msg: string) => string
   }
 ) {
+  const { uid, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pages, setPages] = useState<Page[]>([]);
@@ -75,14 +77,15 @@ export function useReaderChapterViewModel(
       const sId = parts[1];
       const registrySourceId = `scrape:${sId}`;
 
-      const chapterSnap = await getDoc(doc(db, 'chapters', chapterId));
+      if (!uid) throw new Error('Login required');
+      const chapterSnap = await getDoc(doc(db, 'users', uid, 'chapters', chapterId));
       const chapter = chapterSnap.exists() ? chapterSnap.data() as any : null;
       if (chapter) {
         if (chapter.lastReadPage) setCurrentPageIndex(chapter.lastReadPage);
         if (chapter.status) setChapterStatus(chapter.status);
       }
 
-      const offlinePages = await downloadManager.getDownloadedPages(chapterId);
+      const offlinePages = await downloadManager.getDownloadedPages(uid, chapterId);
       if (offlinePages) {
         setPages(offlinePages);
         loadingToast.dismiss();
@@ -105,7 +108,7 @@ export function useReaderChapterViewModel(
         const provider = sourceRegistry.getOrRehydrate(registrySourceId);
         adapter = provider instanceof ScrapeAdapter ? provider : null;
         if (!adapter) {
-          const savedSourceSnap = await getDoc(doc(db, 'scrapeSources', sId));
+          const savedSourceSnap = await getDoc(doc(db, 'users', uid, 'scrapeSources', sId));
           if (savedSourceSnap.exists()) {
             const savedSource = savedSourceSnap.data() as any;
             sourceRegistry.registerScrapeSource(savedSource.id, savedSource.config, savedSource.baseUrl);
@@ -172,18 +175,24 @@ export function useReaderChapterViewModel(
     } finally {
       setLoading(false);
     }
-  }, [chapterId, toast, searchParams]);
+  }, [chapterId, uid, toast, searchParams]);
 
   useEffect(() => {
     if (!chapterId) return;
-    if (chapterId.startsWith('scrape:')) {
-      void loadScrapeChapter();
+    if (!chapterId.startsWith('scrape:')) {
+      setLoading(true);
+      setPages(generatePlaceholderPages(5));
+      setLoading(false);
       return;
     }
-    setLoading(true);
-    setPages(generatePlaceholderPages(5));
-    setLoading(false);
-  }, [chapterId, loadScrapeChapter]);
+    if (authLoading) return;
+    if (!uid) {
+      setError('Login required');
+      setLoading(false);
+      return;
+    }
+    void loadScrapeChapter();
+  }, [chapterId, authLoading, uid, loadScrapeChapter]);
 
   useEffect(() => {
     if (!sourceId) return;
@@ -197,8 +206,12 @@ export function useReaderChapterViewModel(
       sourceUrl: session.sourceUrl,
       chapters: [...session.chapters].sort((a, b) => a.chapterNumber - b.chapterNumber),
     });
-    void getDoc(doc(db, 'libraryEntries', session.mangaId)).then((snap) => setSavedInLib(Boolean(snap.exists())));
-  }, [sourceId]);
+    if (!uid) {
+      setSavedInLib(false);
+      return;
+    }
+    void getDoc(doc(db, 'users', uid, 'libraryEntries', session.mangaId)).then((snap) => setSavedInLib(Boolean(snap.exists())));
+  }, [sourceId, uid]);
 
   useEffect(() => {
     if (pages.length === 0 || chapterViewed) return;
@@ -207,7 +220,8 @@ export function useReaderChapterViewModel(
     setChapterViewed(true);
     if (chapterStatus === 'unread') {
       setChapterStatus('viewed');
-      void statusService.markChapterStatus(chapterId, mangaId, 'viewed', 0);
+      if (!uid) return;
+    void statusService.markChapterStatus(uid, chapterId, mangaId, 'viewed', 0);
     }
   }, [pages, chapterViewed, mangaInfo, searchParams, chapterStatus, chapterId]);
 
@@ -218,7 +232,8 @@ export function useReaderChapterViewModel(
     const mangaId = mangaInfo?.mangaId ?? searchParams.get('manga') ?? '';
     if (!mangaId) return;
     setChapterStatus('completed');
-    void statusService.markChapterStatus(chapterId, mangaId, 'completed', pages.length - 1);
+    if (!uid) return;
+    void statusService.markChapterStatus(uid, chapterId, mangaId, 'completed', pages.length - 1);
   }, [currentPageIndex, pages.length, chapterId, mangaInfo, searchParams, chapterStatus, chapterViewed]);
 
   useEffect(() => {
@@ -227,7 +242,8 @@ export function useReaderChapterViewModel(
     if (!mangaId) return;
     const t = setTimeout(() => {
       if (chapterStatus !== 'completed') {
-        void statusService.markChapterStatus(chapterId, mangaId, 'viewed', currentPageIndex);
+        if (!uid) return;
+        void statusService.markChapterStatus(uid, chapterId, mangaId, 'viewed', currentPageIndex);
       }
     }, 800);
     return () => clearTimeout(t);
@@ -263,7 +279,11 @@ export function useReaderChapterViewModel(
         return;
       }
 
-      await setDoc(doc(db, 'scrapeSources', mangaInfo.sourceId), {
+      if (!uid) {
+        toast.error('Login required');
+        return;
+      }
+      await setDoc(doc(db, 'users', uid, 'scrapeSources', mangaInfo.sourceId), {
         id: mangaInfo.sourceId,
         name: mangaInfo.title,
         baseUrl: session.baseUrl,
@@ -271,7 +291,7 @@ export function useReaderChapterViewModel(
         createdAt: new Date().toISOString(),
       }, { merge: true });
 
-      await setDoc(doc(db, 'manga', mangaInfo.mangaId), {
+      await setDoc(doc(db, 'users', uid, 'manga', mangaInfo.mangaId), {
         id: mangaInfo.mangaId,
         sourceId: 'scrape',
         title: mangaInfo.title,
@@ -300,9 +320,9 @@ export function useReaderChapterViewModel(
           url: session.chapterUrls[ch.id] || '',
           status: 'unread' as const,
         }));
-      await Promise.all(chapterRows.map((row) => setDoc(doc(db, 'chapters', row.id), row, { merge: true })));
+      await Promise.all(chapterRows.map((row) => setDoc(doc(db, 'users', uid, 'chapters', row.id), row, { merge: true })));
 
-      await setDoc(doc(db, 'libraryEntries', mangaInfo.mangaId), {
+      await setDoc(doc(db, 'users', uid, 'libraryEntries', mangaInfo.mangaId), {
         mangaId: mangaInfo.mangaId,
         categories: [],
         dateAdded: new Date().toISOString(),
@@ -318,7 +338,7 @@ export function useReaderChapterViewModel(
     } finally {
       setSaving(false);
     }
-  }, [mangaInfo, toast]);
+  }, [mangaInfo, uid, toast]);
 
   const navigateToChapter = useCallback((chId: string) => {
     setShowChapterList(false);

@@ -1,15 +1,13 @@
-import { collection, doc, getDocs, query, setDoc, deleteDoc, where } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from './db-gateway';
 import { db } from '~/lib/firebase';
 import type { AppSettings } from '~/domain/types';
+import { userSettingsDoc } from './user-scope';
 
-const settingsDocRef = doc(db, 'settings', 'app-settings');
-
-export async function saveSettings(settings: AppSettings): Promise<void> {
-  await setDoc(settingsDocRef, settings, { merge: true });
+export async function saveSettings(uid: string, settings: AppSettings): Promise<void> {
+  await setDoc(userSettingsDoc(uid), settings, { merge: true });
 }
 
-export async function getSettings(): Promise<AppSettings | undefined> {
-  const { getDoc } = await import('firebase/firestore');
-  const snap = await getDoc(settingsDocRef);
+export async function getSettings(uid: string): Promise<AppSettings | undefined> {
+  const snap = await getDoc(userSettingsDoc(uid));
   return snap.exists() ? (snap.data() as AppSettings) : undefined;
 }

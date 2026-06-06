@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 
-// Simulation of a server-side sync storage
-// In a real app, this would be a database call
 const SYNC_FILE = path.join(process.cwd(), 'sync_data.json');
 
 async function getSyncData() {
@@ -22,23 +20,23 @@ async function saveSyncData(data: any) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, type, data } = body;
+    const { uid, type, data } = body;
 
-    // For now, use a default 'local-user' since we don't have auth
-    const id = userId || 'local-user';
+    if (!uid) {
+      return NextResponse.json({ success: false, error: 'uid required' }, { status: 400 });
+    }
 
     const allData = await getSyncData();
-    if (!allData[id]) allData[id] = { updates: [] };
+    if (!allData[uid]) allData[uid] = { updates: [] };
 
-    allData[id].updates.push({
+    allData[uid].updates.push({
       timestamp: new Date().toISOString(),
       type,
       data
     });
 
-    // Keep only last 1000 updates
-    if (allData[id].updates.length > 1000) {
-      allData[id].updates = allData[id].updates.slice(-1000);
+    if (allData[uid].updates.length > 1000) {
+      allData[uid].updates = allData[uid].updates.slice(-1000);
     }
 
     await saveSyncData(allData);

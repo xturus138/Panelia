@@ -3,16 +3,21 @@
 import { useEffect, useState, useRef } from 'react'
 import { useSettingsStore } from '~/presentation/stores'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, Monitor, Book, Globe, Eye, Trash2, ChevronRight, Download, Upload } from 'lucide-react'
+import { Moon, Sun, Monitor, Book, Globe, Eye, Trash2, ChevronRight, Download, Upload, LogIn, LogOut } from 'lucide-react'
 import { db } from '~/lib/firebase'
-import { terminate, clearIndexedDbPersistence } from 'firebase/firestore'
+import { terminate, clearIndexedDbPersistence } from '~/infrastructure/db/db-gateway'
 import { useToast } from '~/hooks/useToast'
 import { exportBackup, importBackup, validateBackup, fileAdapter } from '~/infrastructure/backup'
+import { blobStore } from '~/services/downloads/blob-store'
+import { useAuth } from '~/lib/auth-context'
+import Link from 'next/link'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const settings = useSettingsStore()
   const toast = useToast()
+  const { user, loading: authLoading, signInWithGoogle, logout } = useAuth()
+  const isSignedIn = !!user
   const [mounted, setMounted] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -119,6 +124,55 @@ export default function SettingsPage() {
       </div>
 
       <div className="flex flex-col gap-6">
+        {/* Account Section */}
+        <section className="bg-card rounded-xl p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+            <LogIn className="w-4 h-4" />
+            Account
+          </h2>
+          {isSignedIn ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[14px] font-medium text-foreground truncate">
+                  {user?.displayName ?? user?.email ?? 'Signed in'}
+                </p>
+                <p className="text-[12px] text-muted-foreground truncate">{user?.email ?? user?.uid}</p>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await logout()
+                    toast.success('Signed out')
+                  } catch {
+                    toast.error('Failed to sign out')
+                  }
+                }}
+                className="py-2 px-3 rounded-xl bg-secondary text-secondary-foreground font-medium text-[13px] hover:bg-secondary/80 flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={async () => {
+                if (authLoading) return
+                try {
+                  await signInWithGoogle()
+                  toast.success('Signed in')
+                } catch (err) {
+                  toast.error('Sign in failed')
+                }
+              }}
+              disabled={authLoading}
+              className="w-full py-3 px-4 rounded-xl bg-primary text-primary-foreground font-medium text-[14px] hover:bg-primary/90 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <LogIn className="w-4 h-4" />
+              {authLoading ? 'Checking...' : 'Sign in with Google'}
+            </button>
+          )}
+        </section>
+
         {/* Theme Section */}
         <section className="bg-card rounded-xl p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -380,6 +434,7 @@ export default function SettingsPage() {
                 try {
                   await terminate(db);
                   await clearIndexedDbPersistence(db);
+                  await blobStore.deleteAll();
                   toast.success('Local data cleared successfully. Reloading...');
                   setTimeout(() => window.location.reload(), 1500);
                 } catch (err) {

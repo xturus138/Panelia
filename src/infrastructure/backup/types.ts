@@ -5,7 +5,7 @@ export interface BackupMeta {
   version: number;       // 1, 2, 3... for migrations
   exportedAt: string;    // ISO timestamp
   appVersion: string;    // e.g. "0.1.0"
-  exportedBy: 'file';    // | 'firebase' (future)
+  exportedBy: 'file' | 'firebase';
 }
 
 export interface BackupData {

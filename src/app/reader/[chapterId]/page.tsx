@@ -25,6 +25,7 @@ import {
   Download,
 } from 'lucide-react';
 import { downloadManager } from '~/services/downloads/download-manager';
+import { useAuth } from '~/lib/auth-context';
 
 
 const PageSkeleton = () => (
@@ -35,6 +36,7 @@ const PageSkeleton = () => (
 
 
 export default function ReaderPage({ params }: { params: Promise<{ chapterId: string }> }) {
+  const { uid } = useAuth();
   const { chapterId: rawChapterId } = use(params);
   const chapterId = decodeURIComponent(rawChapterId);
   const toast = useToast();
@@ -70,15 +72,17 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
   const [downloaded, setDownloaded] = useState(false);
 
   useEffect(() => {
-    void downloadManager.isChapterDownloaded(chapterId).then(setDownloaded);
-  }, [chapterId]);
+    if (!uid) return;
+    void downloadManager.isChapterDownloaded(uid, chapterId).then(setDownloaded);
+  }, [chapterId, uid]);
 
   const handleDownload = async () => {
     if (downloading || downloaded) return;
     setDownloading(true);
     const t = toast.loading('Downloading chapter...');
     try {
-      await downloadManager.downloadChapter(chapterId);
+      if (!uid) { toast.error('Login required'); return; }
+      await downloadManager.downloadChapter(uid, chapterId, (progress) => t.update(`Downloading... ${progress}%`));
       setDownloaded(true);
       t.dismiss();
       toast.success('Chapter downloaded for offline reading');

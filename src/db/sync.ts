@@ -1,4 +1,4 @@
-import { doc, getDoc, collection, getDocs, query, where, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, writeBatch, updateDoc } from '~/infrastructure/db/db-gateway';
 import { db } from '~/lib/firebase';
 import type { Chapter } from '~/domain/types';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
@@ -6,12 +6,10 @@ import type { SiteConfig, ScrapeSource } from '~/services/scrape/types';
 import { sourceRegistry } from '~/infrastructure/sources';
 import { getMangaById } from '~/infrastructure/db/manga';
 import { getScrapeSourceById } from '~/infrastructure/db/scrape-sources';
+import { userScopedCollection, userScopedDoc } from '~/infrastructure/db/user-scope';
 
-const chaptersCol = collection(db, 'chapters');
-const libraryEntriesCol = collection(db, 'libraryEntries');
-
-export async function syncChapters(mangaId: string): Promise<number> {
-  const manga = await getMangaById(mangaId);
+export async function syncChapters(uid: string, mangaId: string): Promise<number> {
+  const manga = await getMangaById(uid, mangaId);
   if (!manga) {
     throw new Error(`Manga not found: ${mangaId}`);
   }
@@ -22,9 +20,8 @@ export async function syncChapters(mangaId: string): Promise<number> {
     const parts = manga.id.split(':');
     if (parts.length < 3) throw new Error(`Invalid scrape manga id: ${mangaId}`);
     const sourceKey = parts[1];
-    const mangaHash = parts.slice(2).join(':');
 
-    const scrapeSource = await getScrapeSourceById(sourceKey);
+    const scrapeSource = await getScrapeSourceById(uid, sourceKey);
     if (!scrapeSource) throw new Error(`Scrape source not found: ${sourceKey}`);
 
     const config: SiteConfig = scrapeSource.config;
@@ -76,6 +73,7 @@ export async function syncChapters(mangaId: string): Promise<number> {
     }));
   }
 
+  const chaptersCol = userScopedCollection(uid, 'chapters');
   const existingSnap = await getDocs(query(chaptersCol, where('mangaId', '==', mangaId)));
   const existingMap = new Map(existingSnap.docs.map((d) => [d.id, d.data() as Chapter]));
 
@@ -105,7 +103,7 @@ export async function syncChapters(mangaId: string): Promise<number> {
   await batch.commit();
 
   const unreadCount = mergedChapters.filter((c) => c.status !== 'completed').length;
-  await updateDoc(doc(libraryEntriesCol, mangaId), { unreadCount });
+  await updateDoc(userScopedDoc(uid, 'libraryEntries', mangaId), { unreadCount });
 
   return mergedChapters.length;
 }

@@ -9,15 +9,17 @@ import { useCallback, useState, useMemo } from 'react';
 import { syncChapters } from '~/db/sync';
 import { useToast } from '~/hooks/useToast';
 import type { LibraryEntry, Manga, Chapter } from '~/domain/types';
+import { useAuth } from '~/lib/auth-context';
 
 export default function UpdatesPage() {
+  const { uid } = useAuth();
   const toast = useToast();
   const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set());
   const [refreshAllLoading, setRefreshAllLoading] = useState(false);
 
-  const libraryEntries = useFirestoreCollection<LibraryEntry>('libraryEntries');
-  const allManga = useFirestoreCollection<Manga>('manga');
-  const allChapters = useFirestoreCollection<Chapter>('chapters');
+  const libraryEntries = useFirestoreCollection<LibraryEntry>(uid, 'libraryEntries');
+  const allManga = useFirestoreCollection<Manga>(uid, 'manga');
+  const allChapters = useFirestoreCollection<Chapter>(uid, 'chapters');
 
   const updates = useMemo(() => {
     if (!libraryEntries || !allManga || !allChapters) return undefined;
@@ -49,7 +51,8 @@ export default function UpdatesPage() {
   const handleRefresh = useCallback(async (mangaId: string) => {
     setRefreshingIds((prev) => new Set(prev).add(mangaId));
     try {
-      await syncChapters(mangaId);
+      if (!uid) throw new Error('Login required');
+      await syncChapters(uid, mangaId);
     } catch (err) {
       console.error(`Failed to sync ${mangaId}:`, err);
     } finally {

@@ -7,6 +7,7 @@ import { cn } from "~/lib/utils"
 import { Trash2, MoreVertical, RefreshCw, Clock } from "lucide-react"
 import { removeFromLibrary } from "~/infrastructure/db/library"
 import { MangaCover } from "~/components/common/MangaCover"
+import { useAuth } from '~/lib/auth-context'
 
 function formatRelativeTime(dateStr: string) {
   const date = new Date(dateStr)
@@ -36,6 +37,7 @@ interface MangaCardProps {
 }
 
 export function MangaCard({ manga, className, chapterCount, unreadCount, lastViewedAt, sourceId, onDeleted, onRefresh, refreshing }: MangaCardProps) {
+  const { uid } = useAuth();
   // Append sourceId to URL for multi-source support
   const href = sourceId ? `/manga/${sourceId}:${manga.id}` : `/manga/${manga.id}`
   const [menuOpen, setMenuOpen] = useState(false)
@@ -68,7 +70,8 @@ export function MangaCard({ manga, className, chapterCount, unreadCount, lastVie
     if (deleting) return
     setDeleting(true)
     try {
-      await removeFromLibrary(manga.id)
+      if (!uid) return;
+      await removeFromLibrary(uid, manga.id)
       onDeleted?.(manga.id)
     } catch (err) {
       console.error("Failed to delete manga:", err)

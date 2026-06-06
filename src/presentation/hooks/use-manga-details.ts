@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFirestoreCollection } from '~/hooks/useFirestoreQuery';
-import { getDoc, doc, collection, getDocs, query, where } from 'firebase/firestore';
+import { getDoc, doc, collection, getDocs, query, where } from '~/infrastructure/db/db-gateway';
 import { db as firestore } from '~/lib/firebase';
 import { isInLibrary, toggleInLibrary } from '~/infrastructure/db/library';
 import { sourceRegistry } from '~/infrastructure/sources';
@@ -9,6 +9,7 @@ import { useReaderStore } from '~/presentation/stores';
 import { setScrapeSession } from '~/services/scrape/sessionStore';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
 import type { Chapter, Manga, ReadStatus, LibraryEntry } from '~/domain/types';
+import { useAuth } from '~/lib/auth-context';
 
 const NOISE_PATTERNS = [/\/jp\.png/, /\/kr\.png/, /\/cn\.png/, /\/logo/, /\/icon/];
 const COVER_FALLBACK = 'https://placehold.co/400x600/1a1a1a/cccccc?text=No+Cover';
@@ -39,6 +40,7 @@ async function validateCoverUrl(url: string): Promise<string> {
 }
 
 export function useMangaDetailsViewModel(id: string) {
+  const { uid } = useAuth();
   const [manga, setManga] = useState<Manga | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [inLib, setInLib] = useState(false);
@@ -47,7 +49,7 @@ export function useMangaDetailsViewModel(id: string) {
   const [loadingChapterId, setLoadingChapterId] = useState<string | null>(null);
   const setReaderOpen = useReaderStore((state) => state.setReaderOpen);
 
-  const libraryEntry = useFirestoreCollection<LibraryEntry>('libraryEntries');
+  const libraryEntry = useFirestoreCollection<LibraryEntry>(uid, 'libraryEntries');
   const currentLibraryEntry = useMemo(() => {
     if (!libraryEntry) return undefined;
     return libraryEntry.find((e) => e.mangaId === id);
@@ -72,11 +74,17 @@ export function useMangaDetailsViewModel(id: string) {
       setLoading(true);
       try {
         if (sourceId.startsWith('scrape')) {
-          const dbMangaSnap = await getDoc(doc(firestore, 'manga', id));
-          const chaptersSnap = await getDocs(query(collection(firestore, 'chapters'), where('mangaId', '==', id)));
+          if (!uid) {
+            setManga(null);
+            setChapters([]);
+            setInLib(false);
+            return;
+          }
+          const dbMangaSnap = await getDoc(doc(firestore, 'users', uid, 'manga', id));
+          const chaptersSnap = await getDocs(query(collection(firestore, 'users', uid, 'chapters'), where('mangaId', '==', id)));
           const dbManga = dbMangaSnap.exists() ? dbMangaSnap.data() as Manga : null;
           const dbChapters = chaptersSnap.docs.map((d) => d.data() as Chapter);
-          const inLibrary = await isInLibrary(id);
+          const inLibrary = await isInLibrary(uid, id);
 
           if (dbManga) {
             setManga(dbManga as Manga);
@@ -94,7 +102,7 @@ export function useMangaDetailsViewModel(id: string) {
             adapter = provider;
             baseUrl = adapter['sourceUrl'];
           } else {
-            const savedSourceSnap = await getDoc(doc(firestore, 'scrapeSources', scrapeKey));
+            const savedSourceSnap = await getDoc(doc(firestore, 'users', uid, 'scrapeSources', scrapeKey));
             if (savedSourceSnap.exists()) {
               const savedSource = savedSourceSnap.data() as any;
               sourceRegistry.registerScrapeSource(savedSource.id, savedSource.config, savedSource.baseUrl);
@@ -192,13 +200,20 @@ export function useMangaDetailsViewModel(id: string) {
           return;
         }
 
+        if (!uid) {
+          setManga(null);
+          setChapters([]);
+          setInLib(false);
+          return;
+        }
+
         const [m, c, l] = await Promise.all([
           provider.getMangaDetails(mangaId),
           provider.getChapters(mangaId),
-          isInLibrary(id),
+          isInLibrary(uid, id),
         ]);
 
-        const localChaptersSnap = await getDocs(query(collection(firestore, 'chapters'), where('mangaId', '==', id)));
+        const localChaptersSnap = await getDocs(query(collection(firestore, 'users', uid, 'chapters'), where('mangaId', '==', id)));
         const localChapters = localChaptersSnap.docs.map((d) => d.data() as Chapter);
         const localMap = new Map(localChapters.map((chapter) => [chapter.id, chapter]));
 
@@ -226,19 +241,21 @@ export function useMangaDetailsViewModel(id: string) {
     };
 
     void load();
-  }, [id]);
+  }, [id, uid]);
 
   const handleToggleLibrary = useCallback(async () => {
     if (!manga) return;
-    const next = await toggleInLibrary(manga, chapters);
+    if (!uid) return;
+    const next = await toggleInLibrary(uid, manga, chapters);
     setInLib(next);
   }, [manga, chapters]);
 
   const toggleChapterStatus = useCallback(async (chapterId: string, nextStatus: ReadStatus) => {
     if (!manga) return;
     setLoadingChapterId(chapterId);
-    await statusService.markChapterStatus(chapterId, id, nextStatus, 0);
-    const updatedSnap = await getDoc(doc(firestore, 'chapters', chapterId));
+    if (!uid) return;
+    await statusService.markChapterStatus(uid, chapterId, id, nextStatus, 0);
+    const updatedSnap = await getDoc(doc(firestore, 'users', uid, 'chapters', chapterId));
     const updated = updatedSnap.exists() ? updatedSnap.data() as Chapter : null;
     if (updated) {
       setChapters((prev) => prev.map((chapter) => (chapter.id === chapterId ? (updated as Chapter) : chapter)));

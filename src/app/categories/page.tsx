@@ -5,14 +5,16 @@ import { useFirestoreCollection } from '~/hooks/useFirestoreQuery';
 import { EmptyState } from '~/components/common/EmptyState';
 import { Plus, Folder, Edit2, Trash2, Check, X } from 'lucide-react';
 import { useToast } from '~/hooks/useToast';
-import { doc, setDoc, deleteDoc, updateDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, updateDoc, writeBatch } from '~/infrastructure/db/db-gateway';
 import { db } from '~/lib/firebase';
+import { useAuth } from '~/lib/auth-context';
 import type { Category, LibraryEntry } from '~/domain/types';
 
 export default function CategoriesPage() {
+  const { uid } = useAuth();
   const toast = useToast();
-  const rawCategories = useFirestoreCollection<Category>('categories');
-  const allLibraryEntries = useFirestoreCollection<LibraryEntry>('libraryEntries');
+  const rawCategories = useFirestoreCollection<Category>(uid, 'categories');
+  const allLibraryEntries = useFirestoreCollection<LibraryEntry>(uid, 'libraryEntries');
 
   const categories = useMemo(() => {
     if (!rawCategories) return undefined;
@@ -31,7 +33,8 @@ export default function CategoriesPage() {
     try {
       const maxOrder = categories?.reduce((max, c) => Math.max(max, c.sortOrder), -1) ?? -1;
       const id = `cat:${Date.now()}`;
-      await setDoc(doc(db, 'categories', id), {
+      if (!uid) { toast.error('Login required'); return; }
+      await setDoc(doc(db, 'users', uid, 'categories', id), {
         id,
         name,
         sortOrder: maxOrder + 1,
@@ -49,7 +52,8 @@ export default function CategoriesPage() {
     const name = editName.trim();
     if (!name) return;
     try {
-      await updateDoc(doc(db, 'categories', id), { name });
+      if (!uid) { toast.error('Login required'); return; }
+      await updateDoc(doc(db, 'users', uid, 'categories', id), { name });
       setEditingId(null);
       toast.success('Category renamed');
     } catch {
@@ -60,13 +64,14 @@ export default function CategoriesPage() {
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete "${name}"? Manga will not be removed from your library.`)) return;
     try {
+      if (!uid) { toast.error('Login required'); return; }
       const batch = writeBatch(db);
-      batch.delete(doc(db, 'categories', id));
+      batch.delete(doc(db, 'users', uid, 'categories', id));
 
       if (allLibraryEntries) {
         allLibraryEntries.forEach((entry) => {
           if (entry.categories.includes(id)) {
-            batch.update(doc(db, 'libraryEntries', entry.mangaId), {
+            batch.update(doc(db, 'users', uid, 'libraryEntries', entry.mangaId), {
               categories: entry.categories.filter((c) => c !== id),
             });
           }

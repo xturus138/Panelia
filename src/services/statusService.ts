@@ -1,38 +1,40 @@
-import { doc, getDoc, updateDoc, writeBatch, collection, getDocs, query, where, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, writeBatch, collection, getDocs, query, where, setDoc, deleteDoc } from '~/infrastructure/db/db-gateway';
 import { db } from '~/lib/firebase';
 import type { ReadStatus, Chapter, LibraryEntry } from '~/types';
-
-const chaptersCol = collection(db, 'chapters');
-const readProgressCol = collection(db, 'readProgress');
-const libraryEntriesCol = collection(db, 'libraryEntries');
+import { userScopedCollection, userScopedDoc } from '~/infrastructure/db/user-scope';
 
 export const statusService = {
-  async syncToServer(type: string, data: any) {
+  async syncToServer(uid: string, type: string, data: any) {
     try {
       await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, data })
+        body: JSON.stringify({ uid, type, data })
       });
     } catch (e) {
       console.error('Failed to sync to server', e);
     }
   },
 
-  async recalculateLibraryCounts(mangaId: string) {
+  async recalculateLibraryCounts(uid: string, mangaId: string) {
+    const chaptersCol = userScopedCollection(uid, 'chapters');
     const snap = await getDocs(query(chaptersCol, where('mangaId', '==', mangaId)));
     const chapters = snap.docs.map((d) => d.data() as Chapter);
     const unreadCount = chapters.filter(c => c.status !== 'completed').length;
     const viewedCount = chapters.filter(c => c.status !== 'unread').length;
 
-    await updateDoc(doc(libraryEntriesCol, mangaId), {
+    await updateDoc(userScopedDoc(uid, 'libraryEntries', mangaId), {
       unreadCount,
       viewedCount
     });
   },
 
-  async markChapterStatus(chapterId: string, mangaId: string, status: ReadStatus, page: number = 0) {
+  async markChapterStatus(uid: string, chapterId: string, mangaId: string, status: ReadStatus, page: number = 0) {
     const now = new Date().toISOString();
+
+    const chaptersCol = userScopedCollection(uid, 'chapters');
+    const readProgressCol = userScopedCollection(uid, 'readProgress');
+    const libraryEntriesCol = userScopedCollection(uid, 'libraryEntries');
 
     const chapterSnap = await getDoc(doc(chaptersCol, chapterId));
     if (!chapterSnap.exists()) return;
@@ -56,11 +58,8 @@ export const statusService = {
 
     const batch = writeBatch(db);
 
-    // In Firestore, if status is 'unread', we can delete completedAt by setting it to deleteField() or undefined.
-    // However, merge: true or partial setDoc/updateDoc works. We can use updateDoc.
     batch.update(doc(chaptersCol, chapterId), updates);
 
-    // Update readProgress collection
     const progressDocRef = doc(readProgressCol, chapterId);
     if (status === 'unread') {
       batch.delete(progressDocRef);
@@ -75,7 +74,6 @@ export const statusService = {
       }, { merge: true });
     }
 
-    // Update library metadata
     const entrySnap = await getDoc(doc(libraryEntriesCol, mangaId));
     if (entrySnap.exists()) {
       if (status !== 'unread') {
@@ -90,15 +88,17 @@ export const statusService = {
     await batch.commit();
 
     if (entrySnap.exists()) {
-      await this.recalculateLibraryCounts(mangaId);
+      await this.recalculateLibraryCounts(uid, mangaId);
     }
 
-    // Fire & forget server sync
-    this.syncToServer('chapter_status_update', { chapterId, mangaId, status, page, timestamp: now });
+    this.syncToServer(uid, 'chapter_status_update', { chapterId, mangaId, status, page, timestamp: now });
   },
 
-  async markMangaAllRead(mangaId: string) {
+  async markMangaAllRead(uid: string, mangaId: string) {
     const now = new Date().toISOString();
+
+    const chaptersCol = userScopedCollection(uid, 'chapters');
+    const libraryEntriesCol = userScopedCollection(uid, 'libraryEntries');
 
     const chaptersSnap = await getDocs(query(chaptersCol, where('mangaId', '==', mangaId)));
     const chapters = chaptersSnap.docs.map((d) => d.data() as Chapter);
@@ -122,6 +122,6 @@ export const statusService = {
 
     await batch.commit();
 
-    this.syncToServer('manga_mark_all_read', { mangaId, timestamp: now });
+    this.syncToServer(uid, 'manga_mark_all_read', { mangaId, timestamp: now });
   }
 };

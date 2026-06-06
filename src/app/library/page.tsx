@@ -13,10 +13,12 @@ import { EmptyState } from '~/components/common/EmptyState'
 import type { LibrarySortMode } from '~/presentation/stores/library-store'
 import type { Category, Chapter } from '~/domain/types'
 import Link from 'next/link'
+import { useAuth } from '~/lib/auth-context'
 
 const PAGE_SIZE = 24
 
 export default function LibraryPage() {
+  const { uid, loading: authLoading } = useAuth()
   const { libraryEntries, mangaList } = useLibrary()
   const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set())
   const [refreshAllLoading, setRefreshAllLoading] = useState(false)
@@ -25,7 +27,7 @@ export default function LibraryPage() {
   const { libraryViewMode, updateSettings } = useSettingsStore()
   const { sortMode, setSortMode, activeCategoryId, setActiveCategory } = useLibraryStore()
 
-  const categories = useFirestoreCollection<Category>('categories')
+  const categories = useFirestoreCollection<Category>(uid, 'categories')
   const categoriesList = useMemo(() => {
     if (!categories) return undefined;
     return [...categories].sort((a, b) => (a as any).sortOrder - (b as any).sortOrder);
@@ -113,7 +115,8 @@ export default function LibraryPage() {
   const handleRefresh = useCallback(async (mangaId: string, silent = false) => {
     setRefreshingIds(prev => new Set(prev).add(mangaId))
     try {
-      await syncChapters(mangaId)
+      if (!uid) throw new Error('Login required')
+      await syncChapters(uid, mangaId)
       if (!silent) toast.success('Chapters updated')
     } catch (err) {
       console.error(`Failed to sync ${mangaId}:`, err)
@@ -125,7 +128,7 @@ export default function LibraryPage() {
         return next
       })
     }
-  }, [toast])
+  }, [uid, toast])
 
   const handleRefreshAll = useCallback(async () => {
     if (!mangaList || mangaList.length === 0) return
@@ -146,7 +149,7 @@ export default function LibraryPage() {
     }
   }, [mangaList, handleRefresh, toast])
 
-  const allChapters = useFirestoreCollection<Chapter>('chapters')
+  const allChapters = useFirestoreCollection<Chapter>(uid, 'chapters')
   const chapterCounts = useMemo(() => {
     if (!allChapters) return {}
     const counts: Record<string, number> = {}
@@ -156,10 +159,40 @@ export default function LibraryPage() {
     return counts
   }, [allChapters])
 
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+          <p className="text-muted-foreground">Checking session...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!uid) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <EmptyState
+            title="Login required"
+            description="Sign in from Settings to view your library"
+          />
+          <Link href="/settings" className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+            Open Settings
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   if (mangaList === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted-foreground">Loading...</p>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+          <p className="text-muted-foreground">Loading library...</p>
+        </div>
       </div>
     )
   }

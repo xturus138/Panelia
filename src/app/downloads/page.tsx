@@ -7,10 +7,12 @@ import Link from 'next/link';
 import type { DownloadedChapter, Manga } from '~/domain/types';
 import { useMemo } from 'react';
 import { MangaCover } from '~/components/common/MangaCover';
+import { useAuth } from '~/lib/auth-context';
 
 export default function DownloadsPage() {
-  const downloadedChapters = useFirestoreCollection<DownloadedChapter>('downloadedChapters');
-  const allManga = useFirestoreCollection<Manga>('manga');
+  const { uid } = useAuth();
+  const downloadedChapters = useFirestoreCollection<DownloadedChapter>(uid, 'downloadedChapters');
+  const allManga = useFirestoreCollection<Manga>(uid, 'manga');
 
   const downloadedWithManga = useMemo(() => {
     if (!downloadedChapters || !allManga) return undefined;

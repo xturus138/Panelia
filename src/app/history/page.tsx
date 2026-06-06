@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { MangaCover } from '~/components/common/MangaCover';
 import type { ReadProgress, Manga, Chapter } from '~/domain/types';
 import { useMemo } from 'react';
+import { useAuth } from '~/lib/auth-context';
 
 function formatRelativeTime(dateStr: string) {
   const date = new Date(dateStr);
@@ -24,9 +25,10 @@ function formatRelativeTime(dateStr: string) {
 }
 
 export default function HistoryPage() {
-  const progressList = useFirestoreCollection<ReadProgress>('readProgress');
-  const allManga = useFirestoreCollection<Manga>('manga');
-  const allChapters = useFirestoreCollection<Chapter>('chapters');
+  const { uid } = useAuth();
+  const progressList = useFirestoreCollection<ReadProgress>(uid, 'readProgress');
+  const allManga = useFirestoreCollection<Manga>(uid, 'manga');
+  const allChapters = useFirestoreCollection<Chapter>(uid, 'chapters');
 
   const history = useMemo(() => {
     if (!progressList || !allManga || !allChapters) return undefined;

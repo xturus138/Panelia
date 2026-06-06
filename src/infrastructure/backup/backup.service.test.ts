@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { exportBackup, importBackup, validateBackup } from './backup.service';
 
 vi.mock('~/lib/firebase', () => ({
-  db: {}
+  db: {},
+  auth: { currentUser: { uid: 'test-user' } }
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -16,10 +17,16 @@ vi.mock('firebase/firestore', () => ({
     docs: [{
       id: 'm1',
       data: () => ({ id: 'm1' }),
+      ref: {},
     }],
   }),
   setDoc: vi.fn(),
   deleteDoc: vi.fn(),
+  writeBatch: vi.fn(() => ({
+    delete: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
+    commit: vi.fn().mockResolvedValue(undefined),
+  })),
 }));
 
 const mockUpdateSettings = vi.fn();

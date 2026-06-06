@@ -1,18 +1,15 @@
-import { collection, doc, getDoc, setDoc, deleteDoc, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, deleteDoc, getDocs, query, where, writeBatch } from './db-gateway';
 import { db } from '~/lib/firebase';
 import type { Manga, Chapter, LibraryEntry } from '~/domain/types';
 import { deleteDownloadedChaptersByMangaId } from './downloads';
 import { deleteReadProgressByChapterIds } from './read-progress';
+import { userScopedCollection, userScopedDoc } from './user-scope';
 
-const libraryEntriesCol = collection(db, 'libraryEntries');
-const mangaCol = collection(db, 'manga');
-const chaptersCol = collection(db, 'chapters');
-
-export async function toggleInLibrary(manga: Manga, chapters?: Chapter[]): Promise<boolean> {
-  const exists = await isInLibrary(manga.id);
+export async function toggleInLibrary(uid: string, manga: Manga, chapters?: Chapter[]): Promise<boolean> {
+  const exists = await isInLibrary(uid, manga.id);
 
   if (exists) {
-    await removeFromLibrary(manga.id);
+    await removeFromLibrary(uid, manga.id);
     return false;
   } else {
     const entry: LibraryEntry = {
@@ -23,11 +20,11 @@ export async function toggleInLibrary(manga: Manga, chapters?: Chapter[]): Promi
     };
 
     const batch = writeBatch(db);
-    batch.set(doc(mangaCol, manga.id), manga, { merge: true });
-    batch.set(doc(libraryEntriesCol, manga.id), entry);
+    batch.set(userScopedDoc(uid, 'manga', manga.id), manga, { merge: true });
+    batch.set(userScopedDoc(uid, 'libraryEntries', manga.id), entry);
     if (chapters && chapters.length > 0) {
       chapters.forEach((ch) => {
-        batch.set(doc(chaptersCol, ch.id), ch, { merge: true });
+        batch.set(userScopedDoc(uid, 'chapters', ch.id), ch, { merge: true });
       });
     }
     await batch.commit();
@@ -35,11 +32,12 @@ export async function toggleInLibrary(manga: Manga, chapters?: Chapter[]): Promi
   }
 }
 
-export async function removeFromLibrary(mangaId: string): Promise<void> {
+export async function removeFromLibrary(uid: string, mangaId: string): Promise<void> {
   const batch = writeBatch(db);
-  batch.delete(doc(libraryEntriesCol, mangaId));
-  batch.delete(doc(mangaCol, mangaId));
+  batch.delete(userScopedDoc(uid, 'libraryEntries', mangaId));
+  batch.delete(userScopedDoc(uid, 'manga', mangaId));
 
+  const chaptersCol = userScopedCollection(uid, 'chapters');
   const chaptersSnap = await getDocs(query(chaptersCol, where('mangaId', '==', mangaId)));
   const chapterIds = chaptersSnap.docs.map((d) => {
     batch.delete(d.ref);
@@ -49,12 +47,12 @@ export async function removeFromLibrary(mangaId: string): Promise<void> {
   await batch.commit();
 
   if (chapterIds.length > 0) {
-    await deleteReadProgressByChapterIds(chapterIds);
+    await deleteReadProgressByChapterIds(uid, chapterIds);
   }
-  await deleteDownloadedChaptersByMangaId(mangaId);
+  await deleteDownloadedChaptersByMangaId(uid, mangaId);
 }
 
-export async function isInLibrary(mangaId: string): Promise<boolean> {
-  const snap = await getDoc(doc(libraryEntriesCol, mangaId));
+export async function isInLibrary(uid: string, mangaId: string): Promise<boolean> {
+  const snap = await getDoc(userScopedDoc(uid, 'libraryEntries', mangaId));
   return snap.exists();
 }
