@@ -125,7 +125,7 @@ export default function UpdatesPage() {
             >
               {item.manga && (
                 <div className="w-16 h-24 shrink-0">
-                  <MangaCover url={item.manga.coverUrl} title={item.manga.title} />
+                  <MangaCover src={item.manga.coverUrl} alt={item.manga.title} />
                 </div>
               )}
               <div className="flex-1 min-w-0 py-3 pr-3">

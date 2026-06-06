@@ -87,7 +87,7 @@ export default function HistoryPage() {
                 className="flex gap-4 p-3 bg-card rounded-2xl border border-border shadow-sm items-center hover:bg-muted/50 transition-colors"
               >
                 <div className="w-16 h-24 shrink-0 rounded-xl overflow-hidden border border-border">
-                  <MangaCover url={item.manga.coverUrl} title={item.manga.title} />
+                  <MangaCover src={item.manga.coverUrl} alt={item.manga.title} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <Link

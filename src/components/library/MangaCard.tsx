@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useMemo } from "react"
 import type { Manga } from "~/types"
 import { cn } from "~/lib/utils"
 import { Trash2, MoreVertical, RefreshCw, Clock } from "lucide-react"
-import { removeFromLibrary } from "~/db/library"
+import { removeFromLibrary } from "~/infrastructure/db/library"
 import { MangaCover } from "~/components/common/MangaCover"
 
 function formatRelativeTime(dateStr: string) {

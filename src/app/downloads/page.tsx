@@ -54,7 +54,7 @@ export default function DownloadsPage() {
               <Link href={`/reader/${encodeURIComponent(dc.chapterId)}`} className="absolute inset-0 z-0" />
               {dc.manga?.coverUrl && (
                 <div className="w-12 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative z-10">
-                  <MangaCover url={dc.manga.coverUrl} title={dc.manga.title} />
+                  <MangaCover src={dc.manga.coverUrl} alt={dc.manga.title} />
                 </div>
               )}
               <div className="flex-1 min-w-0 relative z-10">

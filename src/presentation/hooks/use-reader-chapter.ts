@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, where, setDoc } from 'firebase/firestore';
 import { db } from '~/lib/firebase';
 import { sourceRegistry } from '~/infrastructure/sources';
 import { statusService } from '~/infrastructure/services';
@@ -263,7 +263,6 @@ export function useReaderChapterViewModel(
         return;
       }
 
-      await db.collection('scrapeSources');
       await setDoc(doc(db, 'scrapeSources', mangaInfo.sourceId), {
         id: mangaInfo.sourceId,
         name: mangaInfo.title,
