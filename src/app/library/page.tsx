@@ -8,6 +8,11 @@ import { db } from '~/db/db'
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { syncChapters } from '~/db/sync'
 import { useToast } from '~/hooks/useToast'
+import { useSettingsStore, useLibraryStore } from '~/presentation/stores'
+import { LayoutGrid, List, ArrowUpDown, Folder } from 'lucide-react'
+import { EmptyState } from '~/components/common/EmptyState'
+import type { LibrarySortMode } from '~/presentation/stores/library-store'
+import Link from 'next/link'
 
 const PAGE_SIZE = 24
 
@@ -17,18 +22,61 @@ export default function LibraryPage() {
   const [refreshAllLoading, setRefreshAllLoading] = useState(false)
   const [page, setPage] = useState(1)
   const toast = useToast()
+  const { libraryViewMode, updateSettings } = useSettingsStore()
+  const { sortMode, setSortMode, activeCategoryId, setActiveCategory } = useLibraryStore()
+
+  const categories = useLiveQuery(() => db.categories.orderBy('sortOrder').toArray())
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [showSortMenu, setShowSortMenu] = useState(false)
+
+  const sortOptions: { value: LibrarySortMode; label: string }[] = [
+    { value: 'last-read', label: 'Last Read' },
+    { value: 'added', label: 'Recently Added' },
+    { value: 'alphabetical', label: 'Alphabetical' },
+    { value: 'unread', label: 'Unread First' },
+  ]
 
   const filteredManga = useMemo(() => {
     if (!mangaList) return []
-    if (!searchQuery.trim()) return mangaList
-    const q = searchQuery.toLowerCase()
-    return mangaList.filter(m =>
-      m.title.toLowerCase().includes(q) ||
-      m.genres?.some(g => g.toLowerCase().includes(q))
-    )
-  }, [mangaList, searchQuery])
+    let result = mangaList;
+    const q = searchQuery.toLowerCase();
+    if (q) {
+      result = result.filter(m =>
+        m.title.toLowerCase().includes(q) ||
+        m.genres?.some(g => g.toLowerCase().includes(q))
+      );
+    }
+    if (activeCategoryId) {
+      const entryMap = new Map((libraryEntries ?? []).map(e => [e.mangaId, e]));
+      result = result.filter((m) => entryMap.get(m.id)?.categories.includes(activeCategoryId));
+    }
+    // Apply sort
+    const entryMap = new Map((libraryEntries ?? []).map(e => [e.mangaId, e]));
+    return [...result].sort((a, b) => {
+      const aEntry = entryMap.get(a.id);
+      const bEntry = entryMap.get(b.id);
+      if (sortMode === 'last-read') {
+        const aDate = aEntry?.lastViewedAt ?? '';
+        const bDate = bEntry?.lastViewedAt ?? '';
+        return bDate.localeCompare(aDate);
+      }
+      if (sortMode === 'added') {
+        const aDate = aEntry?.dateAdded ?? '';
+        const bDate = bEntry?.dateAdded ?? '';
+        return bDate.localeCompare(aDate);
+      }
+      if (sortMode === 'alphabetical') {
+        return a.title.localeCompare(b.title);
+      }
+      if (sortMode === 'unread') {
+        const aUnread = aEntry?.unreadCount ?? 0;
+        const bUnread = bEntry?.unreadCount ?? 0;
+        return bUnread - aUnread;
+      }
+      return 0;
+    });
+  }, [mangaList, libraryEntries, searchQuery, sortMode])
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil((filteredManga?.length ?? 0) / PAGE_SIZE)),
@@ -141,6 +189,39 @@ export default function LibraryPage() {
               <RefreshCw className="w-4 h-4 text-muted-foreground" />
             )}
           </button>
+          <button
+            onClick={() => updateSettings({ libraryViewMode: libraryViewMode === 'grid' ? 'list' : 'grid' })}
+            className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"
+            title={libraryViewMode === 'grid' ? 'Switch to List View' : 'Switch to Grid View'}
+          >
+            {libraryViewMode === 'grid' ? (
+              <List className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <LayoutGrid className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowSortMenu((v) => !v)}
+              className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"
+              title="Sort Library"
+            >
+              <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            </button>
+            {showSortMenu && (
+              <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px] z-30">
+                {sortOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setSortMode(opt.value); setShowSortMenu(false); }}
+                    className={`w-full px-3 py-2 text-left text-[13px] ${sortMode === opt.value ? 'text-primary bg-primary/10' : 'text-foreground hover:bg-muted'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
             <Search className="w-4 h-4 text-muted-foreground" />
           </button>
@@ -148,7 +229,7 @@ export default function LibraryPage() {
       </div>
 
       {/* Search Bar */}
-      <div className="relative mb-6">
+      <div className="relative mb-4">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           type="text"
@@ -159,33 +240,94 @@ export default function LibraryPage() {
         />
       </div>
 
+      <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => setActiveCategory(null)}
+          className={`rounded-full px-3 py-1.5 text-[12px] font-medium whitespace-nowrap ${activeCategoryId === null ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}
+        >
+          All
+        </button>
+        {(categories ?? []).map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setActiveCategory(cat.id)}
+            className={`rounded-full px-3 py-1.5 text-[12px] font-medium whitespace-nowrap flex items-center gap-1 ${activeCategoryId === cat.id ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}
+          >
+            <Folder className="w-3.5 h-3.5" />
+            {cat.name}
+          </button>
+        ))}
+        <Link href="/categories" className="rounded-full px-3 py-1.5 text-[12px] font-medium whitespace-nowrap bg-secondary text-secondary-foreground">
+          Manage
+        </Link>
+      </div>
+
       {/* Manga Grid */}
       {mangaList.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-          <div className="text-4xl mb-4">📚</div>
-          <h2 className="text-lg font-semibold mb-2">Your library is empty</h2>
-          <p className="text-muted-foreground text-sm">
-            Go to Browse to add manga to your collection
-          </p>
-        </div>
+        <EmptyState
+          title="Your library is empty"
+          description="Go to Browse to add manga to your collection"
+        />
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-            {pagedManga.map(manga => {
-              const entry = libraryEntries?.find(e => e.mangaId === manga.id)
-              return (
-                <MangaCard
-                  key={manga.id}
-                  manga={manga}
-                  chapterCount={chapterCounts?.[manga.id]}
-                  unreadCount={entry?.unreadCount}
-                  lastViewedAt={entry?.lastViewedAt}
-                  onRefresh={handleRefresh}
-                  refreshing={refreshingIds.has(manga.id)}
-                />
-              )
-            })}
-          </div>
+          {libraryViewMode === 'grid' ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+              {pagedManga.map(manga => {
+                const entry = libraryEntries?.find(e => e.mangaId === manga.id)
+                return (
+                  <MangaCard
+                    key={manga.id}
+                    manga={manga}
+                    chapterCount={chapterCounts?.[manga.id]}
+                    unreadCount={entry?.unreadCount}
+                    lastViewedAt={entry?.lastViewedAt}
+                    onRefresh={handleRefresh}
+                    refreshing={refreshingIds.has(manga.id)}
+                  />
+                )
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {pagedManga.map(manga => {
+                const entry = libraryEntries?.find(e => e.mangaId === manga.id)
+                return (
+                  <div
+                    key={manga.id}
+                    className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-sm"
+                  >
+                    <div className="w-14 shrink-0 overflow-hidden rounded-lg">
+                      <MangaCard
+                        manga={manga}
+                        chapterCount={chapterCounts?.[manga.id]}
+                        unreadCount={entry?.unreadCount}
+                        lastViewedAt={entry?.lastViewedAt}
+                        onRefresh={handleRefresh}
+                        refreshing={refreshingIds.has(manga.id)}
+                        className="shadow-none hover:shadow-none hover:scale-100"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-[15px] font-semibold text-foreground">{manga.title}</h3>
+                      <p className="mt-1 text-[12px] text-muted-foreground truncate">
+                        {manga.genres?.length ? manga.genres.slice(0, 3).join(' • ') : 'No genres'}
+                      </p>
+                      <div className="mt-2 flex items-center gap-2 text-[12px] text-muted-foreground">
+                        {entry?.unreadCount ? (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">
+                            {entry.unreadCount} unread
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-secondary px-2 py-0.5">All read</span>
+                        )}
+                        {chapterCounts?.[manga.id] ? <span>{chapterCounts[manga.id]} ch</span> : null}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {totalPages > 1 && (
             <nav

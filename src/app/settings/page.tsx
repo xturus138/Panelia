@@ -1,18 +1,81 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSettingsStore } from '~/presentation/stores'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, Monitor, Book, Globe, Eye, Trash2, ChevronRight } from 'lucide-react'
+import { Moon, Sun, Monitor, Book, Globe, Eye, Trash2, ChevronRight, Download, Upload } from 'lucide-react'
+import { db } from '~/db/db'
+import { useToast } from '~/hooks/useToast'
+import { exportBackup, importBackup, validateBackup, fileAdapter } from '~/infrastructure/backup'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const settings = useSettingsStore()
+  const toast = useToast()
   const [mounted, setMounted] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [pendingBackup, setPendingBackup] = useState<any>(null)
+  const [importMode, setImportMode] = useState<'replace' | 'merge'>('replace')
+  const [showImportWarning, setShowImportWarning] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const backup = await exportBackup()
+      const filename = `panelia-backup-${new Date().toISOString().split('T')[0]}.json`
+      fileAdapter.downloadBackup(backup, filename)
+      settings.updateSettings({ lastBackupAt: new Date().toISOString() })
+      toast.success('Backup exported')
+    } catch {
+      toast.error('Failed to export backup')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const backup = await fileAdapter.uploadBackup(file)
+      const validation = validateBackup(backup)
+      if (!validation.valid) {
+        toast.error('Invalid backup: ' + validation.errors.join(', '))
+        return
+      }
+      setPendingBackup(backup)
+      setShowImportWarning(true)
+    } catch (err) {
+      toast.error('Failed to parse backup file')
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const confirmImport = async () => {
+    if (!pendingBackup) return
+    setImporting(true)
+    try {
+      await importBackup(pendingBackup, importMode)
+      toast.success('Backup restored successfully')
+      setShowImportWarning(false)
+      setPendingBackup(null)
+    } catch (err) {
+      toast.error('Failed to restore backup: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setImporting(false)
+    }
+  }
 
   if (!mounted) {
     return (
@@ -103,6 +166,54 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+
+          {/* Reading Direction */}
+          <div className="mt-4">
+            <label className="text-[13px] text-muted-foreground mb-2 block">Reading Direction</label>
+            <div className="flex gap-2">
+              {[
+                { value: 'ltr', label: 'Left to Right' },
+                { value: 'rtl', label: 'Right to Left' },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => settings.updateSettings({ readingDirection: value as any })}
+                  className={`flex-1 py-2.5 px-4 rounded-xl text-[13px] font-medium transition-all ${
+                    settings.readingDirection === value
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Page Fit Mode */}
+          <div className="mt-4">
+            <label className="text-[13px] text-muted-foreground mb-2 block">Page Fit Mode</label>
+            <div className="flex gap-2">
+              {[
+                { value: 'fit-width', label: 'Fit Width' },
+                { value: 'fit-height', label: 'Fit Height' },
+                { value: 'fill', label: 'Fill' },
+                { value: 'original', label: 'Original' },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => settings.updateSettings({ pageFitMode: value as any })}
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-[12px] font-medium transition-all ${
+                    settings.pageFitMode === value
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* Language Filter Section */}
@@ -153,6 +264,131 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Brightness Section */}
+        <section className="bg-card rounded-xl p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+            <Sun className="w-4 h-4" />
+            Brightness
+          </h2>
+          <div className="flex items-center gap-4">
+            <span className="text-[13px] text-muted-foreground w-8">50%</span>
+            <input
+              type="range"
+              min={50}
+              max={150}
+              value={settings.brightness}
+              onChange={(e) => settings.updateSettings({ brightness: Number(e.target.value) })}
+              className="flex-1 h-1.5 appearance-none bg-secondary rounded-full cursor-pointer accent-primary"
+              aria-label="Brightness"
+            />
+            <span className="text-[13px] text-muted-foreground w-8 text-right">150%</span>
+          </div>
+          <p className="text-[12px] text-muted-foreground mt-2">
+            Adjust reader screen brightness
+          </p>
+        </section>
+
+        {/* Backup & Restore */}
+        <section className="bg-card rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Backup & Restore
+            </h2>
+            {settings.lastBackupAt && (
+              <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                Last: {new Date(settings.lastBackupAt).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex-1 py-3 px-4 rounded-xl bg-secondary text-secondary-foreground font-medium text-[14px] hover:bg-secondary/80 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Upload className="w-4 h-4" />
+              {exporting ? 'Exporting...' : 'Export'}
+            </button>
+            <button
+              onClick={handleImportClick}
+              disabled={importing}
+              className="flex-1 py-3 px-4 rounded-xl bg-secondary text-secondary-foreground font-medium text-[14px] hover:bg-secondary/80 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              {importing ? 'Importing...' : 'Import'}
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+        </section>
+
+        {/* Import Warning Modal */}
+        {showImportWarning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-card w-full max-w-sm rounded-2xl p-6 shadow-xl border border-border animate-in fade-in zoom-in duration-200">
+              <h3 className="text-lg font-bold text-foreground mb-2">Restore Backup</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Are you sure you want to restore this backup?
+                Consider <button onClick={handleExport} className="text-primary font-medium hover:underline">creating a current backup</button> first.
+              </p>
+
+              <div className="space-y-3 mb-6">
+                <button
+                  onClick={() => setImportMode('replace')}
+                  className={`w-full p-4 rounded-xl border text-left transition-all ${
+                    importMode === 'replace'
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border bg-secondary/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-sm">Replace All Data</span>
+                    {importMode === 'replace' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Wipes local library and replaces it with backup.</p>
+                </button>
+
+                <button
+                  onClick={() => setImportMode('merge')}
+                  className={`w-full p-4 rounded-xl border text-left transition-all ${
+                    importMode === 'merge'
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border bg-secondary/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-sm">Merge Data</span>
+                    {importMode === 'merge' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Adds missing manga and progress, keeping existing data.</p>
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowImportWarning(false)}
+                  className="flex-1 py-3 px-4 rounded-xl bg-secondary text-secondary-foreground font-medium text-sm hover:bg-secondary/80"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmImport}
+                  disabled={importing}
+                  className="flex-1 py-3 px-4 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {importing ? 'Importing...' : 'Import'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Data Section */}
         <section className="bg-card rounded-xl p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -161,10 +397,15 @@ export default function SettingsPage() {
           </h2>
           <button
             className="w-full py-3 px-4 rounded-xl bg-destructive/10 text-destructive font-medium flex items-center justify-between hover:bg-destructive/20 transition-colors"
-            onClick={() => {
+            onClick={async () => {
               if (confirm('Are you sure you want to clear all local data? This cannot be undone.')) {
-                // Clear database logic would go here
-                alert('Clear data not implemented in MVP')
+                try {
+                  await db.delete();
+                  await db.open();
+                  toast.success('Local data cleared successfully');
+                } catch (err) {
+                  toast.error('Failed to clear data: ' + (err instanceof Error ? err.message : String(err)));
+                }
               }
             }}
           >

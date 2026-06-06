@@ -19,6 +19,7 @@ import { autoDetectConfig } from "~/services/scrape/autoDetect";
 import { getBuiltinPresets, presetToScrapeSource } from "~/services/scrape/presets";
 import { setScrapeSession } from "~/services/scrape/sessionStore";
 import type { SiteConfig, ParsedMangaPage, SearchResult, ScrapeSource } from "~/services/scrape/types";
+import type { Manga } from "~/types";
 import { useToast } from "~/hooks/useToast";
 
 type ViewMode = "sources" | "search" | "detail";
@@ -68,6 +69,9 @@ export default function BrowsePage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Debounce ref
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Detail state
   const [currentUrl, setCurrentUrl] = useState<string>("");
@@ -192,7 +196,7 @@ export default function BrowsePage() {
     [activeSource, configJson]
   );
 
-  // ----- Search -----
+  // Search with debounce
   const handleSearch = useCallback(async () => {
     if (!activeSource || !query.trim()) return;
     setSearchLoading(true);
@@ -219,6 +223,28 @@ export default function BrowsePage() {
     }
     setSearchLoading(false);
   }, [activeSource, query, getAdapter]);
+
+  // Debounced search handler
+  const handleSearchDebounced = useCallback(() => {
+    // Clear existing timeout
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
+    // Set new timeout
+    debounceTimeout.current = setTimeout(() => {
+      handleSearch();
+    }, 300); // 300ms debounce
+  }, [handleSearch]);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
+    };
+  }, []);
 
   // ----- Select manga → fetch detail page -----
   const handleSelectResult = useCallback(
@@ -309,7 +335,7 @@ export default function BrowsePage() {
       // Save manga to DB
       const validatedCover = await validateCoverUrl(mangaData.coverUrl);
       mangaData.coverUrl = validatedCover; // keep in sync
-      await db.manga.put({
+      const mangaRow: Manga = {
         id: mangaData.id,
         sourceId: "scrape",
         title: mangaData.title,
@@ -321,7 +347,8 @@ export default function BrowsePage() {
         genres: mangaData.genres,
         tags: mangaData.tags,
         url: currentUrl,
-      } as any);
+      };
+      await db.manga.put(mangaRow);
 
       // Save chapters
       const chapterRows = mangaData.chapters.map((ch) => ({
@@ -406,7 +433,7 @@ export default function BrowsePage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleSearch();
+              handleSearch(); // Still allow manual submit
             }}
             className="flex-1 flex items-center gap-2"
           >
@@ -415,7 +442,10 @@ export default function BrowsePage() {
               <input
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  handleSearchDebounced(); // Debounced search
+                }}
                 placeholder={`Search ${activeSource.name}...`}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -619,7 +649,7 @@ export default function BrowsePage() {
                         {mangaData.genres.slice(0, 4).map((g) => (
                           <span
                             key={g}
-                            className="text-[10px] font-medium bg-secondary px-2 py-1 rounded-full"
+                            className="text-[10px] font-medium bg-secondary px-2 px-2 py-1 rounded-full"
                           >
                             {g}
                           </span>

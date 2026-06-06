@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useEffect } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { useReaderChapterViewModel, type ReadingMode } from '~/presentation/hooks/use-reader-chapter';
 import { useToast } from '~/hooks/useToast';
+import { useSettingsStore } from '~/presentation/stores';
 import {
   ArrowLeft,
   ArrowLeftCircle,
@@ -21,7 +22,17 @@ import {
   Smartphone,
   ScrollText,
   GalleryHorizontal,
+  Download,
 } from 'lucide-react';
+import { downloadManager } from '~/services/downloads/download-manager';
+
+
+const PageSkeleton = () => (
+  <div className="w-full h-screen bg-gradient-to-b from-slate-800 to-slate-900 animate-pulse flex items-center justify-center">
+    <div className="text-white/40 text-sm">Loading page...</div>
+  </div>
+);
+
 
 export default function ReaderPage({ params }: { params: Promise<{ chapterId: string }> }) {
   const { chapterId: rawChapterId } = use(params);
@@ -53,6 +64,33 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
     toggleControls,
   } = useReaderChapterViewModel(chapterId, toast);
 
+  const { brightness, readingDirection, pageFitMode } = useSettingsStore();
+
+  const [downloading, setDownloading] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+
+  useEffect(() => {
+    void downloadManager.isChapterDownloaded(chapterId).then(setDownloaded);
+  }, [chapterId]);
+
+  const handleDownload = async () => {
+    if (downloading || downloaded) return;
+    setDownloading(true);
+    const t = toast.loading('Downloading chapter...');
+    try {
+      await downloadManager.downloadChapter(chapterId);
+      setDownloaded(true);
+      t.dismiss();
+      toast.success('Chapter downloaded for offline reading');
+    } catch (err) {
+      t.dismiss();
+      toast.error('Failed to download: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+
   useEffect(() => {
     if (!showModeMenu) return;
     const handler = (e: MouseEvent) => {
@@ -64,22 +102,135 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
     return () => document.removeEventListener('mousedown', handler);
   }, [showModeMenu, modeMenuRef, setShowModeMenu]);
 
-  const goToPrevPage = () => setCurrentPageIndex((i) => Math.max(0, i - 1));
-  const goToNextPage = () => setCurrentPageIndex((i) => Math.min(pages.length - 1, i + 1));
+  const goToPrevPage = () => {
+    if (readingDirection === 'rtl') {
+      setCurrentPageIndex((i) => Math.min(pages.length - 1, i + 1));
+    } else {
+      setCurrentPageIndex((i) => Math.max(0, i - 1));
+    }
+  };
+  const goToNextPage = () => {
+    if (readingDirection === 'rtl') {
+      setCurrentPageIndex((i) => Math.max(0, i - 1));
+    } else {
+      setCurrentPageIndex((i) => Math.min(pages.length - 1, i + 1));
+    }
+  };
+
+  // Swipe gesture support for horizontal-swipe mode
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const lastTapRef = useRef(0);
+  const [zoomed, setZoomed] = useState(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const now = Date.now();
+    const doubleTap = now - lastTapRef.current < 300;
+    lastTapRef.current = now;
+    if (doubleTap && readingMode === 'single-page') {
+      setZoomed((v) => !v);
+      touchStartX.current = null;
+      touchEndX.current = null;
+      return;
+    }
+    if (!touchStartX.current || !touchEndX.current) return;
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        goToNextPage();
+      } else {
+        goToPrevPage();
+      }
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
+  const imageClass = zoomed
+    ? 'z-0 max-h-none max-w-none w-auto h-auto object-contain scale-150'
+    : 'z-0 ' +
+      (pageFitMode === 'fit-width'
+        ? 'w-full h-full object-contain'
+        : pageFitMode === 'fit-height'
+        ? 'max-h-full object-contain'
+        : pageFitMode === 'fill'
+        ? 'w-full h-full object-cover'
+        : 'max-h-full max-w-full object-contain');
+
+  useEffect(() => {
+    if (readingMode !== 'single-page' && readingMode !== 'horizontal-swipe') return;
+    const next = pages[currentPageIndex + 1];
+    const prev = pages[currentPageIndex - 1];
+    [next, prev].forEach((page) => {
+      if (!page) return;
+      const img = new Image();
+      img.src = page.imageUrl;
+    });
+  }, [currentPageIndex, pages, readingMode]);
+
+  useEffect(() => {
+    setZoomed(false);
+  }, [chapterId, readingMode]);
+
+  const [pageLoadStates, setPageLoadStates] = useState<Record<number, 'loading' | 'loaded' | 'error'>>({});
+
+  useEffect(() => {
+    console.log('[Reader] pageLoadStates changed:', JSON.stringify(pageLoadStates));
+  }, [pageLoadStates]);
+
+  const handlePageLoad = (index: number) => {
+    console.log(`[Reader] handlePageLoad called for page ${index}`);
+    setPageLoadStates((prev) => ({ ...prev, [index]: 'loaded' }));
+  };
+
+  const handlePageError = (index: number) => {
+    console.log(`[Reader] handlePageError called for page ${index}`);
+    setPageLoadStates((prev) => ({ ...prev, [index]: 'error' }));
+  };
 
   function renderPages() {
+    console.log(`[Reader] renderPages: readingMode=${readingMode}, pages.length=${pages.length}, currentPageIndex=${currentPageIndex}, pageLoadStates=`, JSON.stringify(pageLoadStates));
     if (readingMode === 'single-page' || readingMode === 'horizontal-swipe') {
       const page = pages[currentPageIndex];
       if (!page) return null;
+      const pageState = pageLoadStates[currentPageIndex] || 'loading';
+      console.log(`[Reader] renderPages single-page: page=${page.index}, imageUrl=${page.imageUrl.slice(0, 80)}..., pageState=${pageState}`);
       return (
-        <div className="flex-1 flex items-center justify-center relative select-none">
+        <div className={`flex-1 flex items-center justify-center relative select-none ${zoomed ? 'overflow-auto' : ''}`}>
           <div className="absolute inset-0 flex z-10">
             <div className="w-1/3 h-full cursor-pointer" onClick={(e) => { e.stopPropagation(); goToPrevPage(); }} />
             <div className="w-1/3 h-full cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleControls(); }} />
             <div className="w-1/3 h-full cursor-pointer" onClick={(e) => { e.stopPropagation(); goToNextPage(); }} />
           </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={page.imageUrl} alt={`Page ${page.index + 1}`} className="max-h-full max-w-full object-contain z-0" />
+          {pageState === 'loading' && <PageSkeleton />}
+          {pageState === 'error' && (
+            <div className="flex flex-col items-center justify-center gap-3">
+              <AlertCircle className="w-10 h-10 text-destructive" />
+              <p className="text-white/60 text-sm">Failed to load page</p>
+            </div>
+          )}
+          {pageState !== 'error' && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={page.imageUrl}
+                alt={`Page ${page.index + 1}`}
+                className={imageClass}
+                onLoad={() => handlePageLoad(currentPageIndex)}
+                onError={(e) => { console.log(`[Reader] img onError for page ${currentPageIndex}:`, e); handlePageError(currentPageIndex); }}
+              />
+            </>
+          )}
         </div>
       );
     }
@@ -87,10 +238,34 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
     const gap = readingMode === 'webtoon' ? '' : 'gap-2';
     return (
       <div className={`flex flex-col ${gap} w-full max-w-3xl mx-auto`}>
-        {pages.map((page) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={page.index} src={page.imageUrl} alt={`Page ${page.index + 1}`} className="w-full object-contain" loading="lazy" />
-        ))}
+        {pages.map((page) => {
+          const pageState = pageLoadStates[page.index] || 'loading';
+          return (
+            <div key={page.index} className="relative w-full">
+              {pageState === 'loading' && <PageSkeleton />}
+              {pageState === 'error' && (
+                <div className="w-full h-screen flex flex-col items-center justify-center bg-slate-900 gap-2">
+                  <AlertCircle className="w-8 h-8 text-destructive" />
+                  <p className="text-white/60 text-xs">Page {page.index + 1} failed to load</p>
+                </div>
+              )}
+              {pageState !== 'error' && (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    key={page.index}
+                    src={page.imageUrl}
+                    alt={`Page ${page.index + 1}`}
+                    className="w-full object-contain"
+                    loading="lazy"
+                    onLoad={() => handlePageLoad(page.index)}
+                    onError={(e) => { console.log(`[Reader] img onError for page ${page.index}:`, e); handlePageError(page.index); }}
+                      />
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -100,12 +275,16 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
       <div
         ref={scrollContainerRef}
         className={`flex-1 overflow-y-auto ${readingMode === 'webtoon' ? '' : readingMode === 'vertical-scroll' ? 'px-0' : ''}`}
+        style={{ filter: `brightness(${brightness}%)` }}
         onClick={(e) => {
           const target = e.target as HTMLElement;
           if (target.closest('button, a, select, .click-zone, .mode-menu')) return;
           if (readingMode === 'single-page' || readingMode === 'horizontal-swipe') return;
           toggleControls();
         }}
+        onTouchStart={readingMode === 'horizontal-swipe' ? handleTouchStart : undefined}
+        onTouchMove={readingMode === 'horizontal-swipe' ? handleTouchMove : undefined}
+        onTouchEnd={readingMode === 'horizontal-swipe' ? handleTouchEnd : undefined}
       >
         {loading && !pages.length && (
           <div className="flex-1 flex flex-col items-center justify-center min-h-screen p-6 gap-3">
@@ -173,6 +352,22 @@ export default function ReaderPage({ params }: { params: Promise<{ chapterId: st
                     </div>
                   )}
                 </div>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDownload(); }}
+                  disabled={downloading || downloaded}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors ${downloaded ? 'text-green-400 bg-green-500/10' : 'hover:bg-white/10 text-white'}`}
+                  aria-label="Download"
+                >
+                  {downloading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : downloaded ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">{downloaded ? 'Downloaded' : 'Download'}</span>
+                </button>
 
                 {mangaInfo && mangaInfo.chapters.length > 0 && (
                   <button onClick={(e) => { e.stopPropagation(); setShowChapterList(true); }} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-[12px]" aria-label="Daftar Chapter">

@@ -43,7 +43,7 @@ const presets: Record<string, Preset> = {
         chapterUrl: '',
       },
       chapterPage: {
-        images: 'img',
+        images: '#Baca_Komik img',
       },
     },
   },

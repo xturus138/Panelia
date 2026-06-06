@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { AppSettings } from '~/domain/types';
 
 interface SettingsState extends AppSettings {
+  lastBackupAt: string | null;
   updateSettings: (settings: Partial<AppSettings>) => void;
 }
 
@@ -17,6 +18,7 @@ export const useSettingsStore = create<SettingsState>()(
       brightness: 100,
       languageFilter: 'all',
       showNsfw: false,
+      lastBackupAt: null,
       updateSettings: (newSettings) => set((state) => ({ ...state, ...newSettings })),
     }),
     {

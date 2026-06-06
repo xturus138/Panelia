@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Book, Compass, SquareArrowDown, Settings } from "lucide-react"
+import { Book, Compass, SquareArrowDown, Settings, History } from "lucide-react"
 import { cn } from "~/lib/utils"
 import { useReaderStore } from "~/presentation/stores"
 
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/library", label: "Library", icon: Book },
   { href: "/browse", label: "Browse", icon: Compass },
   { href: "/downloads", label: "Downloads", icon: SquareArrowDown },
+  { href: "/history", label: "History", icon: History },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 

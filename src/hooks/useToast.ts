@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useToastStore } from '~/presentation/stores/toast-store'
 
 export function useToast() {
@@ -5,7 +6,7 @@ export function useToast() {
   const removeToast = useToastStore((state) => state.removeToast)
   const updateToast = useToastStore((state) => state.updateToast)
 
-  return {
+  return useMemo(() => ({
     success: (message: string, duration = 3000) => {
       return addToast({ type: 'success', message, duration })
     },
@@ -21,5 +22,5 @@ export function useToast() {
       }
     },
     dismiss: (id: string) => removeToast(id),
-  }
+  }), [addToast, removeToast, updateToast])
 }

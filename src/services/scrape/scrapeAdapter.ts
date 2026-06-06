@@ -13,8 +13,8 @@ type ListingSelectors = {
 
 export class ScrapeAdapter implements SourceProvider {
   readonly id: string;
-  private config: SiteConfig;
-  private sourceUrl: string;
+  readonly config: SiteConfig;
+  readonly sourceUrl: string;
 
   constructor(id: string, config: SiteConfig, sourceUrl: string) {
     this.id = id;
@@ -81,13 +81,39 @@ export class ScrapeAdapter implements SourceProvider {
   parseChapterPage(html: string): ScrapedPage[] {
     const root = parseHtml(html);
     const imgs = root.querySelectorAll(this.config.chapterPage.images);
-    return imgs.map((img, idx) => {
-      const src = img.getAttribute('src') || img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || '';
-      return {
+    return imgs
+      .map((img) => {
+        let src = img.getAttribute('data-src')
+          || img.getAttribute('data-lazy-src')
+          || img.getAttribute('data-original')
+          || img.getAttribute('data-srcset')
+          || img.getAttribute('src')
+          || '';
+
+        // Handle srcset format (e.g. "url1 1x, url2 2x")
+        if (src.includes(' ')) {
+          src = src.split(' ')[0];
+        }
+
+        const width = parseInt(img.getAttribute('width') || '0', 10);
+        const height = parseInt(img.getAttribute('height') || '0', 10);
+        return { imageUrl: this.resolveUrl(src), width, height };
+      })
+      .filter((page) => {
+        // Skip empty URLs
+        if (!page.imageUrl || page.imageUrl.trim() === '') return false;
+        // Skip base64 data URIs (inline placeholders)
+        if (page.imageUrl.startsWith('data:image/')) return false;
+        // Skip known placeholder patterns
+        if (/lazy\.jpg|lazy\.png|placeholder|loading\.|spinner/i.test(page.imageUrl)) return false;
+        // Skip tiny images (icons, tracking pixels, etc.)
+        if ((page.width > 0 && page.width < 100) || (page.height > 0 && page.height < 100)) return false;
+        return true;
+      })
+      .map((page, idx) => ({
         index: idx,
-        imageUrl: this.resolveUrl(src),
-      };
-    });
+        imageUrl: page.imageUrl,
+      }));
   }
 
   async searchManga(query: string): Promise<SearchResult[]> {

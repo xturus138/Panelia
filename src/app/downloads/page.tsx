@@ -2,7 +2,9 @@
 
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '~/db/db'
-import { Download, Trash2, ChevronRight, FileText } from 'lucide-react'
+import { Download, Trash2, FileText } from 'lucide-react'
+import { EmptyState } from '~/components/common/EmptyState'
+import Link from 'next/link'
 
 export default function DownloadsPage() {
   const downloadedChapters = useLiveQuery(() =>
@@ -40,25 +42,22 @@ export default function DownloadsPage() {
 
       {/* Downloads List */}
       {downloadedWithManga.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-          <div className="text-4xl mb-4">
-            <Download className="w-12 h-12 text-muted-foreground/50" />
-          </div>
-          <h2 className="text-lg font-semibold mb-2">No downloads yet</h2>
-          <p className="text-muted-foreground text-sm">
-            Download chapters to read offline
-          </p>
-        </div>
+        <EmptyState
+          icon={Download}
+          title="No downloads yet"
+          description="Download chapters from manga details to read offline"
+        />
       ) : (
         <div className="flex flex-col gap-2">
           {downloadedWithManga.map((dc) => (
             <div
               key={dc.id}
-              className="bg-card rounded-xl p-4 shadow-sm flex items-center gap-3"
+              className="bg-card rounded-xl p-4 shadow-sm flex items-center gap-3 relative group"
             >
+              <Link href={`/reader/${encodeURIComponent(dc.chapterId)}`} className="absolute inset-0 z-0" />
               {/* Thumbnail */}
               {dc.manga?.coverUrl && (
-                <div className="w-12 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                <div className="w-12 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative z-10">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={dc.manga.coverUrl}
@@ -69,13 +68,13 @@ export default function DownloadsPage() {
               )}
 
               {/* Info */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 relative z-10">
                 <p className="font-medium text-[14px] text-card-foreground truncate">
                   {dc.manga?.title || 'Unknown Manga'}
                 </p>
                 <p className="text-[12px] text-muted-foreground flex items-center gap-1 mt-1">
                   <FileText className="w-3 h-3" />
-                  Chapter {dc.chapterId.split('-').pop()}
+                  Chapter {dc.chapterId.split(':').pop()?.replace('ch', '')}
                 </p>
                 <p className="text-[11px] text-muted-foreground/70 mt-0.5">
                   {(dc.sizeBytes / 1024 / 1024).toFixed(1)} MB
@@ -83,9 +82,10 @@ export default function DownloadsPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 relative z-10">
                 <button
-                  onClick={async () => {
+                  onClick={async (e) => {
+                    e.preventDefault();
                     if (confirm('Delete this download?')) {
                       await db.downloadedChapters.delete(dc.id)
                     }
@@ -94,7 +94,6 @@ export default function DownloadsPage() {
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
             </div>
           ))}

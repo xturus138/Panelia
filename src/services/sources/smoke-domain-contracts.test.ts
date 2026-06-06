@@ -85,7 +85,7 @@ describe('domain contract entrypoints', () => {
 
     const compatSettings: CompatSettings = {
       theme: 'light',
-      readerMode: 'paged',
+      readerMode: 'single-page',
       readingDirection: 'rtl',
       pageFitMode: 'fit-height',
       libraryViewMode: 'list',
@@ -95,7 +95,7 @@ describe('domain contract entrypoints', () => {
     };
 
     expect(compatManga.title).toBe('Compat Test');
-    expect(compatSettings.readerMode).toBe('paged');
+    expect(compatSettings.readerMode).toBe('single-page');
     expect(compatChapter.chapterNumber).toBe(1);
   });
 });

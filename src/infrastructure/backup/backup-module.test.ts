@@ -6,13 +6,14 @@ describe('Backup Module Shape', () => {
 
     expect(backupModule).toHaveProperty('validateBackupShape');
     expect(backupModule).toHaveProperty('migrateBackup');
-    expect(backupModule).toHaveProperty('createBackup');
-    expect(backupModule).toHaveProperty('restoreBackup');
+    expect(backupModule).toHaveProperty('exportBackup');
+    expect(backupModule).toHaveProperty('importBackup');
+    expect(backupModule).toHaveProperty('validateBackup');
 
-    // Test that the functions are actually functions (even if stubbed for now)
     expect(typeof backupModule.validateBackupShape).toBe('function');
     expect(typeof backupModule.migrateBackup).toBe('function');
-    expect(typeof backupModule.createBackup).toBe('function');
-    expect(typeof backupModule.restoreBackup).toBe('function');
+    expect(typeof backupModule.exportBackup).toBe('function');
+    expect(typeof backupModule.importBackup).toBe('function');
+    expect(typeof backupModule.validateBackup).toBe('function');
   });
 });
