@@ -1,6 +1,6 @@
 import type { SourceProvider } from '~/domain/interfaces';
-import { mangadexProvider } from '~/services/sources/mangadex';
-import { comickProvider } from '~/services/sources/comick';
+// import { mangadexProvider } from '~/services/sources/mangadex'; // TODO: available in future update
+// import { comickProvider } from '~/services/sources/comick'; // TODO: available in future update
 import { comixProvider } from '~/services/sources/comix';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
 import type { SiteConfig } from '~/services/scrape/types';
@@ -15,8 +15,8 @@ export interface SourceProviderEntry {
 }
 
 const STATIC_PROVIDERS: SourceProviderEntry[] = [
-  { id: 'mangadex', name: 'MangaDex', provider: mangadexProvider },
-  { id: 'comick', name: 'Comick', provider: comickProvider },
+  // { id: 'mangadex', name: 'MangaDex', provider: mangadexProvider }, // TODO: available in future update
+  // { id: 'comick', name: 'Comick', provider: comickProvider }, // TODO: available in future update
   { id: 'comix', name: 'Comix', provider: comixProvider },
 ];
 
@@ -99,4 +99,5 @@ class SourceRegistry {
 }
 
 export const sourceRegistry = new SourceRegistry();
-export { mangadexProvider, comickProvider, comixProvider };
+export { comixProvider };
+// export { mangadexProvider, comickProvider, comixProvider };

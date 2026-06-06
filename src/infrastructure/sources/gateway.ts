@@ -10,8 +10,8 @@ class SourceGateway {
     return sourceRegistry.getOrRehydrate(id);
   }
 
-  registerModule(id: string, provider: SourceProvider): void {
-    sourceRegistry.register(id, provider);
+  registerModule(module: { id: string; name: string; provider: SourceProvider }): void {
+    sourceRegistry.register(module.id, module.provider);
   }
 }
 

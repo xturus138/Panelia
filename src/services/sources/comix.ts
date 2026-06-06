@@ -39,11 +39,11 @@ interface ComixPaginated<T> {
 }
 
 export class ComixProvider implements SourceProvider {
+  id = 'comix';
+  name = 'Comix';
+
   private async fetchJson<T>(url: string): Promise<T> {
-    const proxyUrl = `${PROXY_PREFIX}${encodeURIComponent(url)}`;
-    console.log('[ComixProvider] fetchJson proxyUrl:', proxyUrl);
-    const response = await fetch(proxyUrl);
-    console.log('[ComixProvider] fetchJson response status:', response.status);
+    const response = await fetch(`${PROXY_PREFIX}${encodeURIComponent(url)}`);
     if (!response.ok) {
       let errMsg = `Comix API error: ${response.status}`;
       try {
@@ -54,19 +54,14 @@ export class ComixProvider implements SourceProvider {
       }
       throw new Error(errMsg);
     }
-    const data = await response.json();
-    console.log('[ComixProvider] fetchJson data keys:', Object.keys(data || {}));
-    return data;
+    return response.json();
   }
 
   async getPopular(page: number = 1): Promise<Manga[]> {
-    const url = `${COMIX_API}/manga?page=${page}&limit=28&order[views_7d]=desc&content_rating=suggestive&types[]=manhwa&types[]=manhua`;
-    console.log('[ComixProvider] getPopular url:', url);
-    const data = await this.fetchJson<ComixResponse<ComixPaginated<ComixManga>>>(url);
-    console.log('[ComixProvider] getPopular result:', data);
-    const items = data.result?.items || [];
-    console.log('[ComixProvider] items count:', items.length);
-    return this.mapMangaList(items);
+    const data = await this.fetchJson<ComixResponse<ComixPaginated<ComixManga>>>(
+      `${COMIX_API}/manga?page=${page}&limit=28&order[views_7d]=desc&content_rating=suggestive&types[]=manhwa&types[]=manhua`
+    );
+    return this.mapMangaList(data.result?.items || []);
   }
 
   async getLatest(page: number = 1): Promise<Manga[]> {
@@ -77,13 +72,10 @@ export class ComixProvider implements SourceProvider {
   }
 
   async search(query: string, page: number = 1): Promise<Manga[]> {
-    const url = `${COMIX_API}/manga?page=${page}&limit=28&q=${encodeURIComponent(query)}`;
-    console.log('[ComixProvider] search url:', url);
-    const data = await this.fetchJson<ComixResponse<ComixPaginated<ComixManga>>>(url);
-    console.log('[ComixProvider] search result:', data);
-    const items = data.result?.items || [];
-    console.log('[ComixProvider] items count:', items.length);
-    return this.mapMangaList(items);
+    const data = await this.fetchJson<ComixResponse<ComixPaginated<ComixManga>>>(
+      `${COMIX_API}/manga?page=${page}&limit=28&q=${encodeURIComponent(query)}`
+    );
+    return this.mapMangaList(data.result?.items || []);
   }
 
   async getMangaDetails(id: string): Promise<Manga> {
