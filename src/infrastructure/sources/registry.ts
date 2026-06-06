@@ -14,8 +14,8 @@ export interface SourceProviderEntry {
 }
 
 const STATIC_PROVIDERS: SourceProviderEntry[] = [
-  { id: 'mangadex', name: 'MangaDex', provider: mangadexProvider },
-  { id: 'comick', name: 'Comick', provider: comickProvider },
+  { id: mangadexProvider.id, name: mangadexProvider.name, provider: mangadexProvider },
+  { id: comickProvider.id, name: comickProvider.name, provider: comickProvider },
 ];
 
 const SCRAPE_PREFIX = 'scrape:';
@@ -83,7 +83,7 @@ class SourceRegistry {
     for (const [id, adapter] of this.scrapeAdapters.entries()) {
       providers.push({
         id: SCRAPE_PREFIX + id,
-        name: adapter.id,
+        name: adapter.name,
         provider: adapter,
         isScrape: true,
       });

@@ -45,6 +45,9 @@ interface MangaDexPageResponse {
 }
 
 export class MangaDexProvider implements SourceProvider {
+  readonly id = 'mangadex';
+  readonly name = 'MangaDex';
+
   private async fetch<T>(endpoint: string): Promise<T> {
     const response = await fetch(
       `/api/proxy?url=${encodeURIComponent(`${MANGADEX_API}${endpoint}`)}`

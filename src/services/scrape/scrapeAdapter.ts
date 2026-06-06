@@ -13,11 +13,13 @@ type ListingSelectors = {
 
 export class ScrapeAdapter implements SourceProvider {
   readonly id: string;
+  readonly name: string;
   readonly config: SiteConfig;
   readonly sourceUrl: string;
 
   constructor(id: string, config: SiteConfig, sourceUrl: string) {
     this.id = id;
+    this.name = id;
     this.config = config;
     this.sourceUrl = sourceUrl;
   }

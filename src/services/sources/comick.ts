@@ -34,6 +34,9 @@ interface ComickPages {
 }
 
 export class ComickProvider implements SourceProvider {
+  readonly id = 'comick';
+  readonly name = 'Comick';
+
   private async fetchJson<T>(url: string): Promise<T> {
     const response = await fetch(url);
     if (!response.ok) {
