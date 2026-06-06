@@ -32,30 +32,30 @@ describe('scrape session store', () => {
     vi.resetModules();
     const { setScrapeSession } = await import('./sessionStore');
     setScrapeSession(
-      'preset-komiku',
+      'komiku',
       config,
       'https://komiku.org',
-      { 'scrape:preset-komiku:ch:abc123': 'https://komiku.org/chapter-1' },
+      { 'komiku:ch:abc123': 'https://komiku.org/chapter-1' },
       'manga-1',
       'Solo Leveling',
       'https://example.com/cover.jpg',
       'https://komiku.org/manga/solo-leveling',
-      [{ id: 'scrape:preset-komiku:ch:abc123', title: 'Chapter 1', chapterNumber: 1 }]
+      [{ id: 'komiku:ch:abc123', title: 'Chapter 1', chapterNumber: 1 }]
     );
 
     // Phase 2: reader page loads fresh — in-memory Map empty, sessionStorage persists
     vi.resetModules();
     const { getScrapeSession, clearScrapeSession } = await import('./sessionStore');
 
-    expect(getScrapeSession('preset-komiku')?.mangaTitle).toBe('Solo Leveling');
-    expect(getScrapeSession('preset-komiku')?.chapterUrls).toEqual({
-      'scrape:preset-komiku:ch:abc123': 'https://komiku.org/chapter-1',
+    expect(getScrapeSession('komiku')?.mangaTitle).toBe('Solo Leveling');
+    expect(getScrapeSession('komiku')?.chapterUrls).toEqual({
+      'komiku:ch:abc123': 'https://komiku.org/chapter-1',
     });
 
     // Verify full cleanup removes from both cache and storage
-    clearScrapeSession('preset-komiku');
+    clearScrapeSession('komiku');
     vi.resetModules();
     const { getScrapeSession: getAfterClear } = await import('./sessionStore');
-    expect(getAfterClear('preset-komiku')).toBeUndefined();
+    expect(getAfterClear('komiku')).toBeUndefined();
   });
 });

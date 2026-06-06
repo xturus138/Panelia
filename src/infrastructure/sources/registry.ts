@@ -8,7 +8,6 @@ export interface SourceProviderEntry {
   name: string;
   provider: SourceProvider;
   iconUrl?: string;
-  isScrape?: boolean;
 }
 
 const STATIC_PROVIDER_MODULES = [mangadexModule, comickModule, komikuModule];

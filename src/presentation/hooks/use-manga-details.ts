@@ -67,8 +67,8 @@ export function useMangaDetailsViewModel(id: string) {
 
   useEffect(() => {
     const parts = id.split(':');
-    // Manga ID format: "scrape:{sourceId}:{slug}" or "{sourceId}:{id}"
-    const sourceId = parts[0] === 'scrape' ? parts[1] : parts[0];
+    // Manga ID format: "{sourceId}:{slug}" or "{sourceId}:{id}"
+    const sourceId = parts[0];
     const mangaId = parts.slice(1).join(':');
 
     const load = async () => {

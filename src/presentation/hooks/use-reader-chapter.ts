@@ -62,10 +62,9 @@ export function useReaderChapterViewModel(
     setCurrentPageIndex(0);
   }, [updateSettings]);
 
-  // chapterId format: "scrape:{sourceId}:ch:{hash}" or "{sourceId}:{id}"
-  // Extract sourceId by stripping "scrape:" prefix if present
+  // chapterId format: "{sourceId}:ch:{hash}" or "{sourceId}:{id}"
   const rawParts = chapterId.split(':');
-  const sourceId = rawParts[0] === 'scrape' ? rawParts[1] : rawParts[0];
+  const sourceId = rawParts[0];
   const provider = sourceGateway.getProvider(sourceId);
   const isScrapeSource = provider instanceof ScrapeAdapter;
 

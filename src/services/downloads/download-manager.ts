@@ -17,7 +17,7 @@ export const downloadManager = {
     if (!mangaSnap.exists()) throw new Error('Manga not found in database');
 
     const parts = chapterId.split(':');
-    const sourceId = parts[0] === 'scrape' ? parts[1] : parts[0];
+    const sourceId = parts[0];
     if (!sourceId) {
       throw new Error('Invalid chapter id');
     }

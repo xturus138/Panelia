@@ -2,6 +2,17 @@
 
 A Mihon-inspired manga/comic reader Progressive Web App (PWA) built with Next.js 15.
 
+## Read docs first
+
+Before changing architecture, especially source/provider code, read docs in `/docs` first.
+
+Key docs:
+- `docs/SOURCE-GUIDE.md` — unified source/provider architecture guide
+- `docs/superpowers/plans/2026-06-06-modular-source-gateway.md` — source gateway refactor plan/history
+- `docs/superpowers/specs/2026-06-03-multi-source-design.md` — earlier multi-source design notes
+
+If you work on sources, providers, browse, reader, sync, or downloads, read `docs/SOURCE-GUIDE.md` first.
+
 ## Features
 
 - 📚 **Library Management** - Save and organize your manga collection
@@ -30,7 +41,7 @@ A Mihon-inspired manga/comic reader Progressive Web App (PWA) built with Next.js
 
 ### Installation
 
-1. Clone the repository:
+1. Clone repository:
 ```bash
 git clone <repository-url>
 cd Panelia
@@ -41,12 +52,12 @@ cd Panelia
 npm install
 ```
 
-3. Run the development server:
+3. Run development server:
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+4. Open [http://localhost:3000](http://localhost:3000) in browser.
 
 ### Build for Production
 
@@ -57,26 +68,36 @@ npm run start
 
 ## Project Structure
 
-```
+```text
 src/
-├── app/                    # Next.js App Router pages
-│   ├── browse/            # Browse sources
-│   ├── downloads/         # Downloaded chapters
-│   ├── library/           # User's library
-│   ├── manga/[id]/        # Manga details
-│   ├── reader/[chapterId]/ # Reader screen
-│   ├── settings/          # App settings
-│   └── updates/           # Update notifications
-├── components/
-│   ├── layout/            # Layout components (BottomNav, ThemeProvider)
-│   ├── library/           # Library components (MangaCard)
-│   └── ui/                # shadcn/ui components
-├── db/                    # Dexie database service
-├── hooks/                 # Custom React hooks
-├── services/             # Source providers
-├── store/                 # Zustand stores
-└── types/                 # TypeScript interfaces
+├── app/                     # Next.js App Router pages
+├── components/              # UI components
+├── db/                      # Data sync and persistence helpers
+├── domain/                  # Core domain types and interfaces
+├── hooks/                   # Custom React hooks
+├── infrastructure/          # Gateways, registries, db adapters, services
+├── presentation/            # View-model hooks and stores
+├── services/
+│   ├── scrape/              # Internal scrape helpers
+│   └── sources/             # Unified source modules
+└── types/                   # Compatibility exports
 ```
+
+## Unified source architecture
+
+All sources now follow one module-based architecture.
+
+- every source lives under `src/services/sources/<source-name>/`
+- every source exposes same provider interface
+- gateway lookup goes through `sourceGateway.getProvider('<source>')`
+- scrape vs API is internal implementation detail only
+
+Current source modules:
+- `mangadex`
+- `comick`
+- `komiku`
+
+For source work, read `docs/SOURCE-GUIDE.md`.
 
 ## Development
 
@@ -87,34 +108,37 @@ src/
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 
-### Adding New Sources
+### Verification commands
 
-Sources implement the `MockSourceProvider` interface in `src/services/mock-source.ts`. Future sources can be added by creating new provider classes that implement:
+Useful checks for source/provider work:
 
-```typescript
-interface SourceProvider {
-  search(query: string): Promise<Manga[]>;
-  getPopular(): Promise<Manga[]>;
-  getLatest(): Promise<Manga[]>;
-  getMangaDetails(id: string): Promise<Manga>;
-  getChapters(mangaId: string): Promise<Chapter[]>;
-  getPages(chapterId: string): Promise<Page[]>;
-}
+```bash
+npx --no-install tsc --noEmit
+npx --no-install vitest run src/infrastructure/sources/ src/services/sources/ src/services/scrape/
 ```
+
+## Documentation
+
+Project documentation lives in `/docs`.
+
+Current important docs:
+- `docs/SOURCE-GUIDE.md`
+- `docs/superpowers/plans/`
+- `docs/superpowers/specs/`
 
 ## PWA Installation
 
 ### Android (Chrome)
 
-1. Open the app in Chrome
-2. Tap the menu button (three dots)
+1. Open app in Chrome
+2. Tap menu button (three dots)
 3. Tap "Add to Home screen"
 4. Confirm installation
 
 ### Desktop (Chrome/Edge)
 
-1. Open the app in browser
-2. Look for the install icon in the address bar
+1. Open app in browser
+2. Look for install icon in address bar
 3. Click "Install"
 
 ## License

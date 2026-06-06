@@ -277,7 +277,7 @@ export class ScrapeAdapter implements SourceProvider {
         coverSrc = '';
       }
       const coverUrl = this.resolveUrl(coverSrc);
-      const id = `scrape:${this.id}:${simpleHash(url)}`;
+      const id = `${this.id}:${simpleHash(url)}`;
 
       return { id, title, url, coverUrl };
     });
@@ -303,11 +303,11 @@ export class ScrapeAdapter implements SourceProvider {
   // ----- Helpers -----
 
   private makeId(url: string): string {
-    return `scrape:${this.id}:${simpleHash(url)}`;
+    return `${this.id}:${simpleHash(url)}`;
   }
 
   private makeChapterId(url: string): string {
-    return `scrape:${this.id}:ch:${simpleHash(url)}`;
+    return `${this.id}:ch:${simpleHash(url)}`;
   }
 
   private extractText(root: ReturnType<typeof parseHtml>, selector: string): string {
