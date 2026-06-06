@@ -13,14 +13,11 @@ type ListingSelectors = {
 
 export class ScrapeAdapter implements SourceProvider {
   readonly id: string;
-  readonly name: string;
   readonly config: SiteConfig;
   readonly sourceUrl: string;
 
   constructor(id: string, config: SiteConfig, sourceUrl: string) {
-    // Ensure id includes the 'scrape:' prefix for consistent chapter/manga IDs
-    this.id = id.startsWith('scrape:') ? id : `scrape:${id}`;
-    this.name = id.replace(/^scrape:/, '');
+    this.id = id;
     this.config = config;
     this.sourceUrl = sourceUrl;
   }
@@ -67,7 +64,7 @@ export class ScrapeAdapter implements SourceProvider {
 
     return {
       id: mangaId,
-      sourceId: this.id,
+      sourceId: 'scrape',
       title,
       coverUrl,
       author: '',
@@ -213,7 +210,7 @@ export class ScrapeAdapter implements SourceProvider {
 
   private buildPageUrl(template: string, page: number, query?: string): string {
     let url = template;
-    if (template.includes('/manga/{page}?')) {
+    if (this.id === 'preset-komiku' && template.includes('/manga/{page}?')) {
       url = template.replace('/{page}', page > 1 ? `/page/${page}/` : '/');
     } else {
       url = template.replace('{page}', String(page));
@@ -278,7 +275,7 @@ export class ScrapeAdapter implements SourceProvider {
         coverSrc = '';
       }
       const coverUrl = this.resolveUrl(coverSrc);
-      const id = `${this.id}:${simpleHash(url)}`;
+      const id = `scrape:${this.id}:${simpleHash(url)}`;
 
       return { id, title, url, coverUrl };
     });
@@ -304,11 +301,11 @@ export class ScrapeAdapter implements SourceProvider {
   // ----- Helpers -----
 
   private makeId(url: string): string {
-    return `${this.id}:${simpleHash(url)}`;
+    return `scrape:${this.id}:${simpleHash(url)}`;
   }
 
   private makeChapterId(url: string): string {
-    return `${this.id}:ch:${simpleHash(url)}`;
+    return `scrape:${this.id}:ch:${simpleHash(url)}`;
   }
 
   private extractText(root: ReturnType<typeof parseHtml>, selector: string): string {

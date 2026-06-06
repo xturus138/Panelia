@@ -80,6 +80,9 @@ export default function BrowsePage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   // Debounce ref
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -175,6 +178,8 @@ export default function BrowsePage() {
     setResults([]);
     setMangaData(null);
     setQuery("");
+    setPage(1);
+    setHasMore(true);
     setConfigJson(activeSource.isScrape ? JSON.stringify(activeSource.scrapeConfig, null, 2) : "{}");
     configDirty.current = false;
     setSavedInSession(false);
@@ -185,9 +190,12 @@ export default function BrowsePage() {
       const loading = toast.loading(`Loading popular from ${activeSource.name}...`);
       try {
         let popularResults: SearchResult[] = [];
+        let isHasMore = true;
         if (activeSource.isScrape) {
           const adapter = new ScrapeAdapter(activeSource.id, activeSource.scrapeConfig!, activeSource.baseUrl!);
-          popularResults = await adapter.getPopularResults();
+          const res = await adapter.getPopularPage(1);
+          popularResults = res.results;
+          isHasMore = res.hasMore;
         } else {
           const provider = activeSource.provider!;
           const manga = await provider.getPopular(1);
@@ -197,6 +205,7 @@ export default function BrowsePage() {
             url: m.url || '',
             coverUrl: m.coverUrl
           }));
+          isHasMore = popularResults.length >= 30;
         }
 
         // Dedupe by URL
@@ -207,6 +216,7 @@ export default function BrowsePage() {
           return true;
         });
         setResults(deduped);
+        setHasMore(isHasMore);
         loading.dismiss();
       } catch (err) {
         console.error("Auto-load failed:", err);
@@ -237,9 +247,12 @@ export default function BrowsePage() {
   const handleSearch = useCallback(async () => {
     if (!activeSource || !query.trim()) return;
     setSearchLoading(true);
+    setPage(1);
+    setHasMore(true);
     const loading = toast.loading("Searching...");
     try {
       let searchResults: SearchResult[] = [];
+      let isHasMore = true;
       if (activeSource.isScrape) {
         let config: SiteConfig;
         try {
@@ -248,7 +261,9 @@ export default function BrowsePage() {
           throw new Error("Invalid config JSON");
         }
         const adapter = new ScrapeAdapter(activeSource.id, config, activeSource.baseUrl!);
-        searchResults = await adapter.searchManga(query.trim());
+        const res = await adapter.searchMangaPage(query.trim(), 1);
+        searchResults = res.results;
+        isHasMore = res.hasMore;
       } else {
         const manga = await activeSource.provider!.search(query.trim(), 1);
         searchResults = manga.map((m: Manga) => ({
@@ -257,6 +272,7 @@ export default function BrowsePage() {
           url: m.url || '',
           coverUrl: m.coverUrl
         }));
+        isHasMore = searchResults.length >= 30;
       }
 
       // Dedupe by URL
@@ -267,6 +283,7 @@ export default function BrowsePage() {
         return true;
       });
       setResults(deduped);
+      setHasMore(isHasMore);
       setView("search");
       loading.dismiss();
       if (deduped.length === 0) {
@@ -278,6 +295,67 @@ export default function BrowsePage() {
     }
     setSearchLoading(false);
   }, [activeSource, query, configJson]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (!activeSource || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    try {
+      let moreResults: SearchResult[] = [];
+      let isHasMore = true;
+      if (activeSource.isScrape) {
+        let config: SiteConfig;
+        try {
+          config = JSON.parse(configJson);
+        } catch {
+          throw new Error("Invalid config JSON");
+        }
+        const adapter = new ScrapeAdapter(activeSource.id, config, activeSource.baseUrl!);
+        let res;
+        if (query.trim()) {
+          res = await adapter.searchMangaPage(query.trim(), nextPage);
+        } else {
+          res = await adapter.getPopularPage(nextPage);
+        }
+        moreResults = res.results;
+        isHasMore = res.hasMore;
+      } else {
+        const provider = activeSource.provider!;
+        let manga: Manga[];
+        if (query.trim()) {
+          manga = await provider.search(query.trim(), nextPage);
+        } else {
+          manga = await provider.getPopular(nextPage);
+        }
+        moreResults = manga.map((m: Manga) => ({
+          id: m.id,
+          title: m.title,
+          url: m.url || '',
+          coverUrl: m.coverUrl
+        }));
+        isHasMore = moreResults.length >= 30;
+      }
+
+      if (moreResults.length === 0) {
+        setHasMore(false);
+      } else {
+        setResults((prev) => {
+          const seen = new Set(prev.map(r => r.url));
+          const deduped = moreResults.filter(r => !seen.has(r.url));
+          if (deduped.length === 0) {
+            setHasMore(false);
+          }
+          return [...prev, ...deduped];
+        });
+        setPage(nextPage);
+        setHasMore(isHasMore);
+      }
+    } catch (err) {
+      console.error("Load more failed:", err);
+      toast.error(`Failed to load more: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    setLoadingMore(false);
+  }, [activeSource, page, query, loadingMore, hasMore, configJson]);
 
   // Debounced search handler
   const handleSearchDebounced = useCallback(() => {
@@ -337,7 +415,7 @@ export default function BrowsePage() {
             chapterUrls[ch.id] = ch.url;
           }
           setScrapeSession(
-            activeSource.id,
+            adapter.id,
             config,
             activeSource.baseUrl!,
             chapterUrls,
@@ -351,10 +429,26 @@ export default function BrowsePage() {
           // Native provider
           const provider = activeSource.provider!;
           const mangaId = result.id;
-          const [m, c] = await Promise.all([
-            provider.getMangaDetails(mangaId),
-            provider.getChapters(mangaId)
-          ]);
+
+          let m: Manga;
+          let c: Chapter[] = [];
+
+          try {
+            m = await provider.getMangaDetails(mangaId);
+          } catch (err) {
+            throw new Error(`Failed to load manga details: ${err instanceof Error ? err.message : String(err)}`);
+          }
+
+          try {
+            c = await provider.getChapters(mangaId);
+          } catch (err) {
+            if (err instanceof Error && err.message === 'COMIX_CHAPTERS_UNAVAILABLE') {
+              // Gracefully handle unavailable chapters, display details instead of crashing
+              console.warn('[Comix] Chapters require token verification, returning empty list');
+            } else {
+              throw err;
+            }
+          }
 
           parsed = {
             ...m,
@@ -589,7 +683,7 @@ export default function BrowsePage() {
       )}
 
       {/* ============ Main Content ============ */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {/* Sources landing */}
         {view === "sources" && (
           <div className="p-6 max-w-lg mx-auto pt-16">
@@ -636,29 +730,50 @@ export default function BrowsePage() {
             )}
 
             {!searchLoading && results.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {results.map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => handleSelectResult(r)}
-                    className="group text-left bg-card rounded-xl border border-border overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
-                  >
-                    <MangaCover
-                      src={r.coverUrl}
-                      alt={r.title}
-                      aspectRatio="3/4"
-                      objectFit="cover"
-                      loading="lazy"
-                      className="group-hover:scale-105 transition-transform"
-                    />
-                    <div className="p-2">
-                      <p className="text-xs font-medium text-foreground line-clamp-2 leading-relaxed">
-                        {r.title}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                  {results.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => handleSelectResult(r)}
+                      className="group text-left bg-card rounded-xl border border-border overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
+                    >
+                      <MangaCover
+                        src={r.coverUrl}
+                        alt={r.title}
+                        aspectRatio="3/4"
+                        objectFit="cover"
+                        loading="lazy"
+                        className="group-hover:scale-105 transition-transform"
+                      />
+                      <div className="p-2">
+                        <p className="text-xs font-medium text-foreground line-clamp-2 leading-relaxed">
+                          {r.title}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {hasMore && (
+                  <div className="flex justify-center mt-8 pb-28">
+                    <button
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="px-8 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-muted transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Loading more...
+                        </>
+                      ) : (
+                        "Load More"
+                      )}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -752,6 +867,24 @@ export default function BrowsePage() {
                     {mangaData.chapters.length} Chapters
                   </h2>
                   <div className="flex flex-col gap-1.5">
+                    {mangaData.chapters.length === 0 && activeSource?.id === 'comix' && (
+                      <div className="p-6 rounded-2xl bg-muted/30 border border-dashed border-border text-center">
+                        <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                        <h3 className="text-sm font-semibold text-foreground">Verification Required</h3>
+                        <p className="text-xs text-muted-foreground mt-1 mb-4 leading-relaxed">
+                          Comix.to requires browser verification to load chapters. Please read directly on their website.
+                        </p>
+                        <a
+                          href={mangaData.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/80 transition-all"
+                        >
+                          Read on Comix.to
+                        </a>
+                      </div>
+                    )}
+
                     {mangaData.chapters.map((ch) => (
                       <button
                         key={ch.id}

@@ -1,0 +1,771 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Comix home" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e6]
+          - img [ref=e8]
+        - generic [ref=e11]:
+          - img [ref=e12]
+          - textbox "Search any title..." [ref=e15]
+          - link "Browse" [ref=e16] [cursor=pointer]:
+            - /url: /browse
+        - navigation [ref=e17]:
+          - button "Settings" [ref=e19] [cursor=pointer]:
+            - img [ref=e20]
+          - button "Menu" [ref=e24] [cursor=pointer]:
+            - img [ref=e25]
+          - button "Log in" [ref=e26] [cursor=pointer]
+    - main [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - img [ref=e31]
+            - searchbox "Search…" [active] [ref=e34]: solo leveling
+          - button "ADVANCED FILTERS" [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+            - text: ADVANCED FILTERS
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - generic [ref=e39]: SORT BY
+            - button "Best match" [ref=e975] [cursor=pointer]:
+              - generic [ref=e41]: Best match
+              - img [ref=e42]
+          - generic [ref=e44]:
+            - generic [ref=e45]: CONTENT RATING
+            - button "Suggestive" [ref=e46] [cursor=pointer]:
+              - generic [ref=e47]: Suggestive
+              - img [ref=e48]
+          - generic [ref=e50]:
+            - generic [ref=e51]: TYPES
+            - button "Any" [ref=e52] [cursor=pointer]:
+              - generic [ref=e53]: Any
+              - img [ref=e54]
+          - generic [ref=e56]:
+            - generic [ref=e57]: GENRES
+            - button "Any" [ref=e58] [cursor=pointer]:
+              - generic [ref=e59]: Any
+              - img [ref=e60]
+          - generic [ref=e62]:
+            - generic [ref=e63]: DEMOGRAPHIC
+            - button "Any" [ref=e64] [cursor=pointer]:
+              - generic [ref=e65]: Any
+              - img [ref=e66]
+          - generic [ref=e68]:
+            - generic [ref=e69]: RELEASE STATUS
+            - button "Any" [ref=e70] [cursor=pointer]:
+              - generic [ref=e71]: Any
+              - img [ref=e72]
+          - generic [ref=e74]:
+            - generic [ref=e75]: MINIMUM CHAPTER
+            - spinbutton [ref=e76]
+          - generic [ref=e77]:
+            - generic [ref=e78]: RELEASE YEAR
+            - generic [ref=e79]:
+              - spinbutton [ref=e80]
+              - img [ref=e82]
+              - spinbutton [ref=e83]
+          - generic [ref=e84]:
+            - generic [ref=e85]: AUTHORS
+            - button "Any" [ref=e86] [cursor=pointer]:
+              - generic [ref=e87]: Any
+              - img [ref=e88]
+          - generic [ref=e90]:
+            - generic [ref=e91]: ARTISTS
+            - button "Any" [ref=e92] [cursor=pointer]:
+              - generic [ref=e93]: Any
+              - img [ref=e94]
+          - button "RESET FILTERS" [ref=e96] [cursor=pointer]
+          - button "I'M FEELING LUCKY" [ref=e97] [cursor=pointer]
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - strong [ref=e100]: "128"
+            - text: items
+          - group "View mode" [ref=e101]:
+            - button "List view" [pressed] [ref=e102] [cursor=pointer]:
+              - img [ref=e103]
+            - button "Grid view" [ref=e104] [cursor=pointer]:
+              - img [ref=e105]
+        - generic [ref=e111]:
+          - generic [ref=e976]:
+            - link "Solo Leveling" [ref=e977] [cursor=pointer]:
+              - /url: /title/emqg8-solo-leveling
+              - button "Add to library" [ref=e980]:
+                - img [ref=e981]
+            - generic [ref=e983]:
+              - link "Solo Leveling" [ref=e984] [cursor=pointer]:
+                - /url: /title/emqg8-solo-leveling
+                - heading "Solo Leveling" [level=3] [ref=e985]
+              - generic [ref=e986]:
+                - generic [ref=e987]: "#41"
+                - generic [ref=e989]: MANHWA
+                - generic [ref=e991]: "2018"
+                - generic [ref=e993]: FINISHED
+                - generic [ref=e995]: CH.200
+                - generic "follows" [ref=e997]:
+                  - img [ref=e998]
+                  - text: 25,041
+                - generic "rating" [ref=e1001]:
+                  - img [ref=e1002]
+                  - text: "8.2"
+              - paragraph [ref=e1004]: 10 years ago, after “the Gate” that connected the real world with the monster world opened, some of the ordinary, everyday people received the power to hunt monsters within the Gate. They are known as “Hunters”. However, not all Hunters are powerful. My name is Sung Jin-Woo, an E-rank Hunter. I’m someone who has to risk his life in the lowliest of dungeons, the “World’s Weakest”. Having no skills whatsoever to display, I barely earned the required money by fighting in low-leveled dungeons… at least until I found a hidden dungeon with the hardest difficulty within the D-rank dungeons! In the end, as I was accepting death, I suddenly received a strange power, a quest log that only I could see, a secret to leveling up that only I know about! If I trained in accordance with my quests and hunted monsters, my level would rise. Changing from the weakest Hunter to the strongest S-rank Hunter! --- **Links:** - Official English Translation [<Pocket Comics>](https://www.pocketcomics.com/comic/320) | [<WebNovel>](https://www.webnovel.com/comic/only-i-level-up-(solo-leveling)_15227640605485101) | [<Tapas>](https://tapas.io/series/solo-leveling-comic/info) - Alternate Official Raw - [Kakao Webtoon](https://webtoon.kakao.com/content/나-혼자만-레벨업/2320)
+              - generic [ref=e1005]: 8mos ago
+          - generic [ref=e1006]:
+            - 'link "Solo Leveling: Arise" [ref=e1007] [cursor=pointer]':
+              - /url: /title/wmkdr-solo-leveling-arise
+              - button "Add to library" [ref=e1010]:
+                - img [ref=e1011]
+            - generic [ref=e1013]:
+              - 'link "Solo Leveling: Arise" [ref=e1014] [cursor=pointer]':
+                - /url: /title/wmkdr-solo-leveling-arise
+                - 'heading "Solo Leveling: Arise" [level=3] [ref=e1015]'
+              - generic [ref=e1016]:
+                - generic [ref=e1017]: MANHWA
+                - generic [ref=e1019]: "2024"
+                - generic [ref=e1021]: RELEASING
+                - generic [ref=e1023]: CH.18
+                - generic "follows" [ref=e1025]:
+                  - img [ref=e1026]
+                  - text: "955"
+                - generic "rating" [ref=e1029]:
+                  - img [ref=e1030]
+                  - text: "7.8"
+              - paragraph [ref=e1032]: "Webtoon series based on the game \"Solo Leveling: Arise\", this spin-off is set around the original series and is focused on various characters."
+              - generic [ref=e1033]: 5mos ago
+          - generic [ref=e1034]:
+            - link "Solo Leveling (Novel)" [ref=e1035] [cursor=pointer]:
+              - /url: /title/w96n0-solo-leveling-novel
+              - button "Add to library" [ref=e1038]:
+                - img [ref=e1039]
+            - generic [ref=e1041]:
+              - link "Solo Leveling (Novel)" [ref=e1042] [cursor=pointer]:
+                - /url: /title/w96n0-solo-leveling-novel
+                - heading "Solo Leveling (Novel)" [level=3] [ref=e1043]
+              - generic [ref=e1044]:
+                - generic [ref=e1045]: OTHER
+                - generic [ref=e1047]: "2016"
+                - generic [ref=e1049]: RELEASING
+                - generic [ref=e1051]: CH.1
+                - generic "follows" [ref=e1053]:
+                  - img [ref=e1054]
+                  - text: "84"
+                - generic "rating" [ref=e1057]:
+                  - img [ref=e1058]
+                  - text: "5.7"
+              - paragraph [ref=e1060]: "**THE WEAKEST HUNTER OF ALL MANKIND!** E-rank hunter Jinwoo Sung has no money, no talent, and no prospects to speak of-and apparently, no luck, either! When he enters a hidden double dungeon one fateful day, he’s abandoned by his party and left to die at the hands of some of the most horrific monsters he’s ever encountered. But just before the last, fatal blow… PING! [Congratulations on becoming a Player.] *Source: Yen Press, Vol. 1* **Original Novel:** [Joara](https://www.joara.com/book/1430230), [KakaoPage](https://page.kakao.com/content/48787313), [Naver Series](https://series.naver.com/novel/detail.series?productNo=3207276), [Ridibooks](https://ridibooks.com/books/777034313) **Official Translations:** English ([Tapas](https://tapas.io/series/solo-leveling-novel/info), [Webnovel](https://www.webnovel.com/book/solo-leveling(only-i-level-up)_12507348206677105)), [Japanese](https://jp.piccoma.com/web/product/18836), [Chinese](https://readmoo.com/book/210264406000101)"
+              - generic [ref=e1061]: 2mos ago
+          - generic [ref=e1062]:
+            - 'link "Solo Leveling: Ragnarok" [ref=e1063] [cursor=pointer]':
+              - /url: /title/8w59d-solo-leveling-ragnarok
+              - button "Add to library" [ref=e1066]:
+                - img [ref=e1067]
+            - generic [ref=e1069]:
+              - 'link "Solo Leveling: Ragnarok" [ref=e1070] [cursor=pointer]':
+                - /url: /title/8w59d-solo-leveling-ragnarok
+                - 'heading "Solo Leveling: Ragnarok" [level=3] [ref=e1071]'
+              - generic [ref=e1072]:
+                - generic [ref=e1073]: "#1723"
+                - generic [ref=e1075]: MANHWA
+                - generic [ref=e1077]: "2024"
+                - generic [ref=e1079]: RELEASING
+                - generic [ref=e1081]: CH.68
+                - generic "follows" [ref=e1083]:
+                  - img [ref=e1084]
+                  - text: 16,253
+                - generic "rating" [ref=e1087]:
+                  - img [ref=e1088]
+                  - text: "8.3"
+              - paragraph [ref=e1090]: After witnessing the death of one of their own, the Absolute Ones — creators of the many universes outside of our own — frantically seek to fill the power void left by their fallen brother. With earth's existence in danger once more as gates spill monsters into our dimension, Sung Suho must answer the call and conquer the shadow dungeon while learning of his father's legendary legacy.
+              - generic [ref=e1091]: 4mos ago
+          - generic [ref=e1092]:
+            - 'link "Solo Leveling: Ragnarok (Pre-serialization)" [ref=e1093] [cursor=pointer]':
+              - /url: /title/q9rgr-solo-leveling-ragnarok-pre-serialization
+              - button "Add to library" [ref=e1096]:
+                - img [ref=e1097]
+            - generic [ref=e1099]:
+              - 'link "Solo Leveling: Ragnarok (Pre-serialization)" [ref=e1100] [cursor=pointer]':
+                - /url: /title/q9rgr-solo-leveling-ragnarok-pre-serialization
+                - 'heading "Solo Leveling: Ragnarok (Pre-serialization)" [level=3] [ref=e1101]'
+              - generic [ref=e1102]:
+                - generic [ref=e1103]: OTHER
+                - generic [ref=e1105]: "2024"
+                - generic [ref=e1107]: FINISHED
+                - generic [ref=e1109]: CH.68
+                - generic "follows" [ref=e1111]:
+                  - img [ref=e1112]
+                  - text: "458"
+                - generic "rating" [ref=e1115]:
+                  - img [ref=e1116]
+                  - text: "6.6"
+              - paragraph [ref=e1118]: The Earth's existence is under threat once more as Itarim, the gods of other universes, seek to fill the void left by the Absolute Being. Sung Jinwoo has no choice but to send Beru, the shadow ant king, to awaken his son's powers and start him on the journey he once took. Suho must conquer the shadow dungeon and earn his place in the world of hunters as he navigates through a new world against a new evil looking to swallow the world whole.
+              - generic [ref=e1119]: 4mos ago
+          - generic [ref=e1120]:
+            - link "Yeonae Leveling" [ref=e1121] [cursor=pointer]:
+              - /url: /title/mjvxe-yeonae-leveling
+              - button "Add to library" [ref=e1124]:
+                - img [ref=e1125]
+            - generic [ref=e1127]:
+              - link "Yeonae Leveling" [ref=e1128] [cursor=pointer]:
+                - /url: /title/mjvxe-yeonae-leveling
+                - heading "Yeonae Leveling" [level=3] [ref=e1129]
+              - generic [ref=e1130]:
+                - generic [ref=e1131]: MANHWA
+                - generic [ref=e1133]: RELEASING
+                - generic [ref=e1135]: CH.0
+                - generic "follows" [ref=e1137]:
+                  - img [ref=e1138]
+                  - text: "45"
+                - generic "rating" [ref=e1141]:
+                  - img [ref=e1142]
+                  - text: "0.0"
+              - paragraph [ref=e1144]: This is the story of two gamers, Jeong Dong Woo (Another) and Cha Su Jin (Honey Milk Tea), who met each other in an online game. Dong Woo falls in love with Milk Tea and the two get virtually married. One day, they decide to meet in real life. However, upon the arrival of Honey Milk Tea, Dong Woo discovers that his beloved wife is a…
+          - generic [ref=e1145]:
+            - link "Love Leveling" [ref=e1146] [cursor=pointer]:
+              - /url: /title/d7n20-love-leveling
+              - button "Add to library" [ref=e1149]:
+                - img [ref=e1150]
+            - generic [ref=e1152]:
+              - link "Love Leveling" [ref=e1153] [cursor=pointer]:
+                - /url: /title/d7n20-love-leveling
+                - heading "Love Leveling" [level=3] [ref=e1154]
+              - generic [ref=e1155]:
+                - generic [ref=e1156]: "#1775"
+                - generic [ref=e1158]: MANHWA
+                - generic [ref=e1160]: "2020"
+                - generic [ref=e1162]: RELEASING
+                - generic [ref=e1164]: CH.60
+                - generic "follows" [ref=e1166]:
+                  - img [ref=e1167]
+                  - text: 1,260
+                - generic "rating" [ref=e1170]:
+                  - img [ref=e1171]
+                  - text: "7.0"
+              - paragraph [ref=e1173]: "Jung Dongwoo, famously known as \"Another\" in the game world, meets a player named \"Honey Milk Tea\" online. Over time, he develops a crush on her and decides to ask her out at the players' meetup - but when Sujin walks in, Dongwoo realizes that his beloved Honey Milk Tea is actually a man. Disappointed and embarrassed, Dongwoo starts chugging one drink after another, and it all goes south from there... **Official Webtoon:** R19: [Bomtoon](https://www.bomtoon.com/detail/dusdofpqpf), [Lezhin](https://www.lezhin.com/ko/comic/love_leveling), [RIDI](https://ridibooks.com/books/3442000518), [MrBlue](https://www.mrblue.com/webtoon/wt_leveling_wz), [Kakaopage](https://page.kakao.com/content/61512053) R15: [Naver Series](https://series.naver.com/comic/detail.series?productNo=5192056), [Kakaopage](https://page.kakao.com/content/54892620) **Official Translations:** •R19: [English](https://www.lezhinus.com/en/comic/love_level_up), [Spanish](https://www.lezhin.es/detail/amor-al-siguiente-nivel), [German](https://www.lezhinde.com/detail/dbd_00140), [French](https://www.lezhinfr.com/detail/daf_0000323), [Thai](https://www.lezhinth.com/detail/thwt_1951) •R15: [French](https://www.lezhinfr.com/detail/daf_0000322), [Japanese](https://jp.piccoma.com/web/product/68147)"
+              - generic [ref=e1174]: 7mos ago
+          - generic [ref=e1175]:
+            - link "Strongest Leveling" [ref=e1176] [cursor=pointer]:
+              - /url: /title/ezkr-strongest-leveling
+              - button "Add to library" [ref=e1179]:
+                - img [ref=e1180]
+            - generic [ref=e1182]:
+              - link "Strongest Leveling" [ref=e1183] [cursor=pointer]:
+                - /url: /title/ezkr-strongest-leveling
+                - heading "Strongest Leveling" [level=3] [ref=e1184]
+              - generic [ref=e1185]:
+                - generic [ref=e1186]: "#7504"
+                - generic [ref=e1188]: MANHUA
+                - generic [ref=e1190]: "2019"
+                - generic [ref=e1192]: FINISHED
+                - generic [ref=e1194]: CH.365
+                - generic "follows" [ref=e1196]:
+                  - img [ref=e1197]
+                  - text: "525"
+                - generic "rating" [ref=e1200]:
+                  - img [ref=e1201]
+                  - text: "8.3"
+              - paragraph [ref=e1203]: Nothing is impossible with the system in my hands! I want the most beautiful woman! I want to be the most powerful person! I want to have the noblest of statuses! I aim to conquer everything under the sky! ---
+              - generic [ref=e1204]: 4mos ago
+          - generic [ref=e1205]:
+            - link "¡Solo DPS!" [ref=e1206] [cursor=pointer]:
+              - /url: /title/j6jzd-solo-dps
+              - button "Add to library" [ref=e1209]:
+                - img [ref=e1210]
+            - generic [ref=e1212]:
+              - link "¡Solo DPS!" [ref=e1213] [cursor=pointer]:
+                - /url: /title/j6jzd-solo-dps
+                - heading "¡Solo DPS!" [level=3] [ref=e1214]
+              - generic [ref=e1215]:
+                - generic [ref=e1216]: OTHER
+                - generic [ref=e1218]: FINISHED
+                - generic [ref=e1220]: CH.30
+                - generic "follows" [ref=e1222]:
+                  - img [ref=e1223]
+                  - text: "5"
+                - generic "rating" [ref=e1226]:
+                  - img [ref=e1227]
+                  - text: "2.0"
+              - paragraph [ref=e1229]: Vicky Tan es una chica dócil y con ansiedad social que vive en la sombra de su confiado y talentoso hermano, Virgilio, un jugador estrella del videojuego Xenith Orion. A pesar de tener sus propias aspiraciones de jugar en el mundo competitivo, Vic teme exponerse a la discriminación y al acoso que algunas mujeres sufren en el mundo de los videojuegos. Sin embargo, cuando surge la oportunidad, Vicky sabe que no puede dejarla escapar. Oculta tras un distintivo disfraz, nuestra protagonista se lanza al mundo de los esports con el apodo de “Aegis”.
+              - generic [ref=e1230]: 3mos ago
+          - generic [ref=e1231]:
+            - link "Solo Festival" [ref=e1232] [cursor=pointer]:
+              - /url: /title/kej77-solo-festival
+              - button "Add to library" [ref=e1235]:
+                - img [ref=e1236]
+            - generic [ref=e1238]:
+              - link "Solo Festival" [ref=e1239] [cursor=pointer]:
+                - /url: /title/kej77-solo-festival
+                - heading "Solo Festival" [level=3] [ref=e1240]
+              - generic [ref=e1241]:
+                - generic [ref=e1242]: MANGA
+                - generic [ref=e1244]: "1985"
+                - generic [ref=e1246]: FINISHED
+                - generic [ref=e1248]: CH.0
+                - generic "follows" [ref=e1250]:
+                  - img [ref=e1251]
+                  - text: "0"
+                - generic "rating" [ref=e1254]:
+                  - img [ref=e1255]
+                  - text: "0.0"
+              - paragraph [ref=e1257]: "(from ebookjapan): Haruna and her boyfriend, Manabu, were both aiming for medical school. However, Manabu, who had been a ronin for many years, writes, \"I'm tired and want to sleep peacefully,\" and commits suicide. ...... Haruna, unable to bear her grief, returns to her parents' home in Aomori, but her best friend Asako encourages her to return to Tokyo to pursue medical school again. However, this decision will lead Haruna into a whirlpool of love and hate over surrogacy. ......"
+          - generic [ref=e1258]:
+            - link "Motae Solo" [ref=e1259] [cursor=pointer]:
+              - /url: /title/n8e3e-motae-solo
+              - button "Add to library" [ref=e1262]:
+                - img [ref=e1263]
+            - generic [ref=e1265]:
+              - link "Motae Solo" [ref=e1266] [cursor=pointer]:
+                - /url: /title/n8e3e-motae-solo
+                - heading "Motae Solo" [level=3] [ref=e1267]
+              - generic [ref=e1268]:
+                - generic [ref=e1269]: MANHWA
+                - generic [ref=e1271]: "2014"
+                - generic [ref=e1273]: FINISHED
+                - generic [ref=e1275]: CH.2
+                - generic "follows" [ref=e1277]:
+                  - img [ref=e1278]
+                  - text: "13"
+                - generic "rating" [ref=e1281]:
+                  - img [ref=e1282]
+                  - text: "0.0"
+              - paragraph [ref=e1284]: A future Korea in which being single is a serious crime. The riveting tale of escape of an unexpectedly arrested single man and his fellow inmates. --- - [Original Webtoon S2-3](https://comic.naver.com/webtoon/list?titleId=666670)
+              - generic [ref=e1285]: 4mos ago
+          - generic [ref=e1286]:
+            - link "Lesbian Solo!" [ref=e1287] [cursor=pointer]:
+              - /url: /title/g0k83-lesbian-solo
+              - button "Add to library" [ref=e1290]:
+                - img [ref=e1291]
+            - generic [ref=e1293]:
+              - link "Lesbian Solo!" [ref=e1294] [cursor=pointer]:
+                - /url: /title/g0k83-lesbian-solo
+                - heading "Lesbian Solo!" [level=3] [ref=e1295]
+              - generic [ref=e1296]:
+                - generic [ref=e1297]: OTHER
+                - generic [ref=e1299]: "2011"
+                - generic [ref=e1301]: FINISHED
+                - generic [ref=e1303]: CH.2
+                - generic "follows" [ref=e1305]:
+                  - img [ref=e1306]
+                  - text: "17"
+                - generic "rating" [ref=e1309]:
+                  - img [ref=e1310]
+                  - text: "8.0"
+              - paragraph [ref=e1312]: Koharu is solo again, so her friends drag her out to get hammered and talk about their relationships.
+              - generic [ref=e1313]: 4mos ago
+          - generic [ref=e1314]:
+            - link "Solo Resurrection" [ref=e1315] [cursor=pointer]:
+              - /url: /title/3320-solo-resurrection
+              - button "Add to library" [ref=e1318]:
+                - img [ref=e1319]
+            - generic [ref=e1321]:
+              - link "Solo Resurrection" [ref=e1322] [cursor=pointer]:
+                - /url: /title/3320-solo-resurrection
+                - heading "Solo Resurrection" [level=3] [ref=e1323]
+              - generic [ref=e1324]:
+                - generic [ref=e1325]: "#2247"
+                - generic [ref=e1327]: MANHWA
+                - generic [ref=e1329]: "2024"
+                - generic [ref=e1331]: RELEASING
+                - generic [ref=e1333]: CH.95
+                - generic "follows" [ref=e1335]:
+                  - img [ref=e1336]
+                  - text: 6,734
+                - generic "rating" [ref=e1339]:
+                  - img [ref=e1340]
+                  - text: "7.8"
+              - paragraph [ref=e1342]: "[Innate Ability: Resurrection] \"What? What's with this super OP cheat skill?\" However, Kang Hyeon didn't know what it meant to die, want to die, and not being able to. The man who became the most infamous hunter on Earth with his immortal body! \"As a human disaster - no, as one against the disasters facing the human race,I will solo resurrect today as well!\""
+              - generic [ref=e1343]: 2d ago
+          - generic [ref=e1344]:
+            - link "Solo Login" [ref=e1345] [cursor=pointer]:
+              - /url: /title/19y9d-solo-login
+              - button "Add to library" [ref=e1348]:
+                - img [ref=e1349]
+            - generic [ref=e1351]:
+              - link "Solo Login" [ref=e1352] [cursor=pointer]:
+                - /url: /title/19y9d-solo-login
+                - heading "Solo Login" [level=3] [ref=e1353]
+              - generic [ref=e1354]:
+                - generic [ref=e1355]: "#5771"
+                - generic [ref=e1357]: MANHWA
+                - generic [ref=e1359]: "2020"
+                - generic [ref=e1361]: ON_HIATUS
+                - generic [ref=e1363]: CH.201
+                - generic "follows" [ref=e1365]:
+                  - img [ref=e1366]
+                  - text: 1,659
+                - generic "rating" [ref=e1369]:
+                  - img [ref=e1370]
+                  - text: "7.6"
+              - paragraph [ref=e1372]: "Eleven year old Siwoo Jeong can only play by himself during gym class. \"I'm sitting out.\" \"Why are you the only one sitting out?\" \"Are you kidding?\" \"If I go in, everybody else has to sit out. Physically.\" To Siwoo, strength isn't something he's had to train for, but something that's come naturally. When he turned sixteen years old though, the world undergoes a catastrophic change. A floating castle appeared in the sky and, through its choosing, granted people wings to become players. The world had been changed forever. Now, ten years have passed. Despite his incredible strength, Siwoo was not chosen as a player and had lived bumming around, until he saves the life of Irene Su falling from the sky, and is granted access to an underground dungeon as a new player. He's more special than anyone! The herculean Siwoo's dungeon run begins now! --- 26-year-old Jung Si-woo never had any friends, because there was nothing interesting about him. He lived an average life as an average person in an average world. But suddenly, the earth faced a great change when Mysterious floating 'Sky Castles' appeared. The 'Sky Castles' granted some people wings and powers, but unfortunately, Si-woo wasn't one of them. --- **Original Webtoon:** [Daum](https://webtoon.kakao.com/content/%EB%82%98-%ED%99%80%EB%A1%9C-%EB%A1%9C%EA%B7%B8%EC%9D%B8/2366), [KakaoPage](https://page.kakao.com/home/54269969) **Official Translations:** * English: [COPIN](https://copincomics.com/toon/154), [Tappytoon](https://www.tappytoon.com/en/comics/i-log-in-alone), [BiliBili Comics](https://www.bilibilicomics.com/detail/mc677)"
+              - generic [ref=e1373]: 8mos ago
+          - generic [ref=e1374]:
+            - link "Hardcore Leveling Warrior" [ref=e1375] [cursor=pointer]:
+              - /url: /title/w9mdn-hardcore-leveling-warrior
+              - button "Add to library" [ref=e1378]:
+                - img [ref=e1379]
+            - generic [ref=e1381]:
+              - link "Hardcore Leveling Warrior" [ref=e1382] [cursor=pointer]:
+                - /url: /title/w9mdn-hardcore-leveling-warrior
+                - heading "Hardcore Leveling Warrior" [level=3] [ref=e1383]
+              - generic [ref=e1384]:
+                - generic [ref=e1385]: "#1196"
+                - generic [ref=e1387]: MANHWA
+                - generic [ref=e1389]: "2016"
+                - generic [ref=e1391]: RELEASING
+                - generic [ref=e1393]: CH.450
+                - generic "follows" [ref=e1395]:
+                  - img [ref=e1396]
+                  - text: 3,703
+                - generic "rating" [ref=e1399]:
+                  - img [ref=e1400]
+                  - text: "8.5"
+              - paragraph [ref=e1402]: "Known as Hardcore Leveling Warrior, Ethan is the #1 player of the world's biggest game, Lucid Adventure. But when a mysterious player kills Ethan and forces his character back to level 1, he will do anything to get back on top. New friends and old foes, as well as mysterious forces and his own dark past, will follow him as he does his best to take back what was once his. **Original Webtoon:** S1-2: [Naver Webtoon](http://comic.naver.com/webtoon/list.nhn?titleId=670152), [Naver Series](https://series.naver.com/comic/detail.nhn?productNo=2140879) S3: [Naver Webtoon](https://comic.naver.com/webtoon/list?titleId=817032), [Naver Series](https://series.naver.com/comic/detail.series?productNo=10208537) **Official Translations:** S1-2: [English](http://www.webtoons.com/en/action/hardcore-leveling-warrior/list?title_no=1221), [Japanese](https://manga.line.me/product/periodic?id=Z0000888), [T.Chinese](https://www.webtoons.com/zh-hant/fantasy/relianzhanshi/list?title_no=755), [Thai](https://www.webtoons.com/th/action/hardcore-leveling-warrior/list?title_no=4057), [French](https://www.webtoons.com/fr/action/hardcore-leveling-warrior/list?title_no=1844) S3: [English](https://www.webtoons.com/en/action/hardcore-leveling-warrior-earth-game/list?title_no=5974) When you go from level 99 to level 1 and start all over again. \"Those who clear quests, shall receive everything.\" An RPG adventure with HCLW and his allies, set in a lucid reality."
+              - generic [ref=e1403]: 3d ago
+          - generic [ref=e1404]:
+            - link "Leveling Up Alone" [ref=e1405] [cursor=pointer]:
+              - /url: /title/8168d-leveling-up-alone
+              - button "Add to library" [ref=e1408]:
+                - img [ref=e1409]
+            - generic [ref=e1411]:
+              - link "Leveling Up Alone" [ref=e1412] [cursor=pointer]:
+                - /url: /title/8168d-leveling-up-alone
+                - heading "Leveling Up Alone" [level=3] [ref=e1413]
+              - generic [ref=e1414]:
+                - generic [ref=e1415]: "#8107"
+                - generic [ref=e1417]: MANHWA
+                - generic [ref=e1419]: "2020"
+                - generic [ref=e1421]: RELEASING
+                - generic [ref=e1423]: CH.183
+                - generic "follows" [ref=e1425]:
+                  - img [ref=e1426]
+                  - text: 1,271
+                - generic "rating" [ref=e1429]:
+                  - img [ref=e1430]
+                  - text: "6.5"
+              - paragraph [ref=e1432]: Living in a world infested with monsters is hard enough, but doing it without powers? That’s Hanyeol’s life in a nutshell. Fearsome beasts roam the earth and kill everyone in their path. Elite members of society called the Awakened mobilize to protect humanity with their supernatural abilities. Amidst it all, Hanyeol is just a poor porter, tasked as sideline support. But when a benevolent being gifts him with special abilities, he’s ready to harvest all the loot and take it to the next level! --- - [Original Webtoon <Webtoon kakao>](https://webtoon.kakao.com/content/%ED%98%BC%EC%9E%90-%EB%A0%88%EB%B2%A8%EC%97%85-%ED%95%A9%EB%8B%88%EB%8B%A4/2430) --- - [Official Japanese Translation](https://piccoma.com/web/product/63109) - [Official Simplified Chinese Translation](https://www.podoteng.com/)
+              - generic [ref=e1433]: 8mos ago
+          - generic [ref=e1434]:
+            - link "Solo Bug Player" [ref=e1435] [cursor=pointer]:
+              - /url: /title/k7r7e-solo-bug-player
+              - button "Add to library" [ref=e1438]:
+                - img [ref=e1439]
+            - generic [ref=e1441]:
+              - link "Solo Bug Player" [ref=e1442] [cursor=pointer]:
+                - /url: /title/k7r7e-solo-bug-player
+                - heading "Solo Bug Player" [level=3] [ref=e1443]
+              - generic [ref=e1444]:
+                - generic [ref=e1445]: "#2034"
+                - generic [ref=e1447]: MANHWA
+                - generic [ref=e1449]: "2020"
+                - generic [ref=e1451]: RELEASING
+                - generic [ref=e1453]: CH.195
+                - generic "follows" [ref=e1455]:
+                  - img [ref=e1456]
+                  - text: 3,953
+                - generic "rating" [ref=e1459]:
+                  - img [ref=e1460]
+                  - text: "7.0"
+              - paragraph [ref=e1462]: Taepung Shin knows every nook and cranny of his favorite MMO video game Paradiso like it was the back of his hand! However, his gaming adventures suffer an abrupt end after his untimely death. But this is not his last hurrah since he’s reincarnated as Jared, a delinquent lord of a frozen province… in Paradiso! Now, he must brave the world he loved and take advantage of all glitches he knows about and turn himself into the main character of his new solo adventure!
+              - generic [ref=e1463]: 6d ago
+          - generic [ref=e1464]:
+            - link "Frenzy Leveling Up System" [ref=e1465] [cursor=pointer]:
+              - /url: /title/mnz3z-frenzy-leveling-up-system
+              - button "Add to library" [ref=e1468]:
+                - img [ref=e1469]
+            - generic [ref=e1471]:
+              - link "Frenzy Leveling Up System" [ref=e1472] [cursor=pointer]:
+                - /url: /title/mnz3z-frenzy-leveling-up-system
+                - heading "Frenzy Leveling Up System" [level=3] [ref=e1473]
+              - generic [ref=e1474]:
+                - generic [ref=e1475]: "#5978"
+                - generic [ref=e1477]: MANHUA
+                - generic [ref=e1479]: "2021"
+                - generic [ref=e1481]: FINISHED
+                - generic [ref=e1483]: CH.108
+                - generic "follows" [ref=e1485]:
+                  - img [ref=e1486]
+                  - text: 1,367
+                - generic "rating" [ref=e1489]:
+                  - img [ref=e1490]
+                  - text: "8.3"
+              - paragraph [ref=e1492]: Despite being the young lord of Merak Palace, Yi Tianyun is considered a weakling and an outcast by all those around him. The only person who cares about him is the master of the palace and his aunt, Shi Xueyun. After another day of training without much progress, Tianyun receives a special dragon blood elixir from Xueyun to replenish his health. But upon consuming it, he’s thrown into the “Frenzy Leveling Up System,” which allows him to finally gain the boost in power he’s always wanted. Now armed with a trove of incredible skills and items, is there any opponent who stands a chance against him?
+              - generic [ref=e1493]: 3mos ago
+          - generic [ref=e1494]:
+            - link "Leveling Beyond the Max" [ref=e1495] [cursor=pointer]:
+              - /url: /title/2910d-leveling-beyond-the-max
+              - button "Add to library" [ref=e1498]:
+                - img [ref=e1499]
+            - generic [ref=e1501]:
+              - link "Leveling Beyond the Max" [ref=e1502] [cursor=pointer]:
+                - /url: /title/2910d-leveling-beyond-the-max
+                - heading "Leveling Beyond the Max" [level=3] [ref=e1503]
+              - generic [ref=e1504]:
+                - generic [ref=e1505]: "#4129"
+                - generic [ref=e1507]: MANHWA
+                - generic [ref=e1509]: "2021"
+                - generic [ref=e1511]: FINISHED
+                - generic [ref=e1513]: CH.103
+                - generic "follows" [ref=e1515]:
+                  - img [ref=e1516]
+                  - text: 4,100
+                - generic "rating" [ref=e1519]:
+                  - img [ref=e1520]
+                  - text: "6.9"
+              - paragraph [ref=e1522]: Max-level internal arts, max-level external arts. Jianghu, Murim’s famous and strongest, Cha Shin Hyeon. I came back to Earth after reaching the peak of martial arts, but why has everything changed so much? A world where monsters are coming out of dungeons, and hunters are leveling up via their status windows. ‘Start again from level one? That doesn’t phase me at all, since my martial arts are already at the max level.’
+              - generic [ref=e1523]: 5mos ago
+          - generic [ref=e1524]:
+            - link "From Leveling Up the Hero to Leveling Up a Nation" [ref=e1525] [cursor=pointer]:
+              - /url: /title/vlreq-from-leveling-up-the-hero-to-leveling-up-a-nation
+              - button "Add to library" [ref=e1528]:
+                - img [ref=e1529]
+            - generic [ref=e1531]:
+              - link "From Leveling Up the Hero to Leveling Up a Nation" [ref=e1532] [cursor=pointer]:
+                - /url: /title/vlreq-from-leveling-up-the-hero-to-leveling-up-a-nation
+                - heading "From Leveling Up the Hero to Leveling Up a Nation" [level=3] [ref=e1533]
+              - generic [ref=e1534]:
+                - generic [ref=e1535]: "#4028"
+                - generic [ref=e1537]: MANGA
+                - generic [ref=e1539]: "2020"
+                - generic [ref=e1541]: RELEASING
+                - generic [ref=e1543]: CH.70
+                - generic "follows" [ref=e1545]:
+                  - img [ref=e1546]
+                  - text: 2,949
+                - generic "rating" [ref=e1549]:
+                  - img [ref=e1550]
+                  - text: "7.3"
+              - paragraph [ref=e1552]: It feels like I (27 y/o) who specialized in [Training] skill was no longer necessary for the Hero's party which had grown stronger to a certain degree. At first, I was the center of the party but in the end, the hero dismissed me from the party. However, because I had "Made a great contribution to the party until now," I received a small Fief instead of retirement money. With my heart feeling the loneliness of leaving the adventures frontline and after seeing the seven villages with their 2500 population of my territory, I had the following thought, "I wonder if I train these people, won't my territory become strong enough that could even defeat the demon lord?"
+              - generic [ref=e1553]: 1w ago
+          - generic [ref=e1554]:
+            - link "Furyu Onsen Solo Trip" [ref=e1555] [cursor=pointer]:
+              - /url: /title/q0kdm-furyu-onsen-solo-trip
+              - button "Add to library" [ref=e1558]:
+                - img [ref=e1559]
+            - generic [ref=e1561]:
+              - link "Furyu Onsen Solo Trip" [ref=e1562] [cursor=pointer]:
+                - /url: /title/q0kdm-furyu-onsen-solo-trip
+                - heading "Furyu Onsen Solo Trip" [level=3] [ref=e1563]
+              - generic [ref=e1564]:
+                - generic [ref=e1565]: MANGA
+                - generic [ref=e1567]: "2001"
+                - generic [ref=e1569]: DISCONTINUED
+                - generic [ref=e1571]: CH.0
+                - generic "follows" [ref=e1573]:
+                  - img [ref=e1574]
+                  - text: "0"
+                - generic "rating" [ref=e1577]:
+                  - img [ref=e1578]
+                  - text: "0.0"
+          - generic [ref=e1580]:
+            - link "Solo Camping for Two" [ref=e1581] [cursor=pointer]:
+              - /url: /title/5z7k-solo-camping-for-two
+              - button "Add to library" [ref=e1584]:
+                - img [ref=e1585]
+            - generic [ref=e1587]:
+              - link "Solo Camping for Two" [ref=e1588] [cursor=pointer]:
+                - /url: /title/5z7k-solo-camping-for-two
+                - heading "Solo Camping for Two" [level=3] [ref=e1589]
+              - generic [ref=e1590]:
+                - generic [ref=e1591]: "#6007"
+                - generic [ref=e1593]: MANGA
+                - generic [ref=e1595]: "2018"
+                - generic [ref=e1597]: RELEASING
+                - generic [ref=e1599]: CH.92
+                - generic "follows" [ref=e1601]:
+                  - img [ref=e1602]
+                  - text: "843"
+                - generic "rating" [ref=e1605]:
+                  - img [ref=e1606]
+                  - text: "7.8"
+              - paragraph [ref=e1608]: "Kinokura Gen loves camping solo. He enjoys the quiet solitude away from the hustle and bustle of the city, and being able to appreciate nature all by himself. But on one camping trip, his solitude is broken by the appearance of Kusano Shizuku, a young woman who wanted to go solo camping by herself, but is ill-prepared and completely out of her league. While he tries to to get her to go home so he can camp in peace, she refuses, and stubbornly insists on accompanying him on future camping trips until she's ready to camp solo. ___ **Note**: \"Part 1\" concluded in February 2023 with 3 extra chapters due to start in April as the series is moving magazines from Kodansha Evening to Kodansha Morning. The series resumed its publication in December 2023."
+              - generic [ref=e1609]: 2w ago
+          - generic [ref=e1610]:
+            - link "Emperor of Solo Play" [ref=e1611] [cursor=pointer]:
+              - /url: /title/qe8d-emperor-of-solo-play
+              - button "Add to library" [ref=e1614]:
+                - img [ref=e1615]
+            - generic [ref=e1617]:
+              - link "Emperor of Solo Play" [ref=e1618] [cursor=pointer]:
+                - /url: /title/qe8d-emperor-of-solo-play
+                - heading "Emperor of Solo Play" [level=3] [ref=e1619]
+              - generic [ref=e1620]:
+                - generic [ref=e1621]: "#1859"
+                - generic [ref=e1623]: MANHWA
+                - generic [ref=e1625]: "2025"
+                - generic [ref=e1627]: RELEASING
+                - generic [ref=e1629]: CH.69
+                - generic "follows" [ref=e1631]:
+                  - img [ref=e1632]
+                  - text: 6,584
+                - generic "rating" [ref=e1635]:
+                  - img [ref=e1636]
+                  - text: "7.4"
+              - paragraph [ref=e1638]: Betrayed by his guild and defeated by a top player, Hyrkan loses everything. Before he can get revenge, a fatal accident ends his life — only for him to wake up years in the past, back at the start of Warlord. Now, with his memories intact, he’s determined to rise to the top alone. But in a game where power means everything, can he truly survive without any allies? The Emperor of Solo Play is back, and this time, he’s playing by his own rules.
+              - generic [ref=e1639]: 5d ago
+          - generic [ref=e1640]:
+            - link "Leveling Up By Killing Gods" [ref=e1641] [cursor=pointer]:
+              - /url: /title/7qk0-leveling-up-by-killing-gods
+              - button "Add to library" [ref=e1644]:
+                - img [ref=e1645]
+            - generic [ref=e1647]:
+              - link "Leveling Up By Killing Gods" [ref=e1648] [cursor=pointer]:
+                - /url: /title/7qk0-leveling-up-by-killing-gods
+                - heading "Leveling Up By Killing Gods" [level=3] [ref=e1649]
+              - generic [ref=e1650]:
+                - generic [ref=e1651]: "#2387"
+                - generic [ref=e1653]: MANHUA
+                - generic [ref=e1655]: "2023"
+                - generic [ref=e1657]: RELEASING
+                - generic [ref=e1659]: CH.126
+                - generic "follows" [ref=e1661]:
+                  - img [ref=e1662]
+                  - text: 1,297
+                - generic "rating" [ref=e1665]:
+                  - img [ref=e1666]
+                  - text: "5.9"
+              - paragraph [ref=e1668]: The abyss descends, and the invasion of the alien races begins... The young boy stands amidst the dense white mist, with no light ahead or behind him. In this situation, how will he make his choices? In the era of the Long Night, do the gods truly live forever? The young boy sees through the lifeblood of all things and executes the gods!
+              - generic [ref=e1669]: 3d ago
+          - generic [ref=e1670]:
+            - 'link "Hardcore Leveling Warrior: Earth Game" [ref=e1671] [cursor=pointer]':
+              - /url: /title/o17l-hardcore-leveling-warrior-earth-game
+              - button "Add to library" [ref=e1674]:
+                - img [ref=e1675]
+            - generic [ref=e1677]:
+              - 'link "Hardcore Leveling Warrior: Earth Game" [ref=e1678] [cursor=pointer]':
+                - /url: /title/o17l-hardcore-leveling-warrior-earth-game
+                - 'heading "Hardcore Leveling Warrior: Earth Game" [level=3] [ref=e1679]'
+              - generic [ref=e1680]:
+                - generic [ref=e1681]: "#2783"
+                - generic [ref=e1683]: MANHWA
+                - generic [ref=e1685]: "2023"
+                - generic [ref=e1687]: RELEASING
+                - generic [ref=e1689]: CH.139
+                - generic "follows" [ref=e1691]:
+                  - img [ref=e1692]
+                  - text: 2,766
+                - generic "rating" [ref=e1695]:
+                  - img [ref=e1696]
+                  - text: "8.3"
+              - paragraph [ref=e1698]: "\"I’m... back!\" After a comet collides on Earth, a gaming world filled with monsters and dungeons becomes a reality. Amidst the chaos, Gong Won-Ho wakes up as Hardcore Leveling Warrior, an almighty game character with exceptional luck and power. Once again, he will embark on a journey to become the strongest... but this time, on Earth!"
+              - generic [ref=e1699]: 3d ago
+          - generic [ref=e1700]:
+            - link "Leveling Up My Life's Luck" [ref=e1701] [cursor=pointer]:
+              - /url: /title/j863-leveling-up-my-lifes-luck
+              - button "Add to library" [ref=e1704]:
+                - img [ref=e1705]
+            - generic [ref=e1707]:
+              - link "Leveling Up My Life's Luck" [ref=e1708] [cursor=pointer]:
+                - /url: /title/j863-leveling-up-my-lifes-luck
+                - heading "Leveling Up My Life's Luck" [level=3] [ref=e1709]
+              - generic [ref=e1710]:
+                - generic [ref=e1711]: MANHWA
+                - generic [ref=e1713]: "2024"
+                - generic [ref=e1715]: RELEASING
+                - generic [ref=e1717]: CH.70
+                - generic "follows" [ref=e1719]:
+                  - img [ref=e1720]
+                  - text: 1,011
+                - generic "rating" [ref=e1723]:
+                  - img [ref=e1724]
+                  - text: "7.3"
+              - paragraph [ref=e1726]: Despite his terrible luck in life, Ted was a top livestreaming musketeer in the fully immersive VR game, Face Chronicle. But his bad luck made him stumble upon a conspiracy where major guilds were illegally taming boss monsters to get ahead. They were far from happy when Ted threatened to expose them, so they coerced him into deleting his game character, which forced him to start over. Can Ted turn his luck around by starting all over from level one? Or will his bad luck ruin his last shot?
+              - generic [ref=e1727]: 3w ago
+          - generic [ref=e1728]:
+            - 'link "Solo-fessional: Solo Katsu Danshi to Bocchi Joshi no Koubousen" [ref=e1729] [cursor=pointer]':
+              - /url: /title/z02m5-solo-fessional-solo-katsu-danshi-to-bocchi-joshi-no-koubousen
+              - button "Add to library" [ref=e1732]:
+                - img [ref=e1733]
+            - generic [ref=e1735]:
+              - 'link "Solo-fessional: Solo Katsu Danshi to Bocchi Joshi no Koubousen" [ref=e1736] [cursor=pointer]':
+                - /url: /title/z02m5-solo-fessional-solo-katsu-danshi-to-bocchi-joshi-no-koubousen
+                - 'heading "Solo-fessional: Solo Katsu Danshi to Bocchi Joshi no Koubousen" [level=3] [ref=e1737]'
+              - generic [ref=e1738]:
+                - generic [ref=e1739]: MANGA
+                - generic [ref=e1741]: "2024"
+                - generic [ref=e1743]: FINISHED
+                - generic [ref=e1745]: CH.2
+                - generic "follows" [ref=e1747]:
+                  - img [ref=e1748]
+                  - text: "0"
+                - generic "rating" [ref=e1751]:
+                  - img [ref=e1752]
+                  - text: "0.0"
+              - paragraph [ref=e1754]: Hasama Shin is a solo guy who loves being alone. He even changed jobs to enjoy his time alone after coming home, and one day, a girl living in the apartment next door asks him if he wants to hang out with her. It's creepy that she asked me out on our first meeting, and more than anything, I don't have time for other people! ...Or so I thought, but I was tempted and ended up hanging out with her, and she started following me around every day...?! A comedy about the struggle between a solo guy and a lonely girl!!
+              - generic [ref=e1755]: 6mos ago
+          - generic [ref=e1756]:
+            - link "Thumbs Up, Level Up" [ref=e1757] [cursor=pointer]:
+              - /url: /title/myme-thumbs-up-level-up
+              - button "Add to library" [ref=e1760]:
+                - img [ref=e1761]
+            - generic [ref=e1763]:
+              - link "Thumbs Up, Level Up" [ref=e1764] [cursor=pointer]:
+                - /url: /title/myme-thumbs-up-level-up
+                - heading "Thumbs Up, Level Up" [level=3] [ref=e1765]
+              - generic [ref=e1766]:
+                - generic [ref=e1767]: MANHWA
+                - generic [ref=e1769]: "2022"
+                - generic [ref=e1771]: RELEASING
+                - generic [ref=e1773]: CH.80
+                - generic "follows" [ref=e1775]:
+                  - img [ref=e1776]
+                  - text: "595"
+                - generic "rating" [ref=e1779]:
+                  - img [ref=e1780]
+                  - text: "8.4"
+              - paragraph [ref=e1782]: My name is Um Jicheok. An ordinary hunter assistant of the Republic of Korea. I have been barely living, dealing with monster corpses. But one day, after my grandpa appeared in my dream, ‘Receive thumbs ups and get awakened.’ Grandpa, is this why you gave me this name? Thumbs up is the point! Get thumbs up, buy skills and level up. ‘The unprecedented awakened’ The story of Um Jicheok, the strongest hunter who gets stronger through thumbs ups.
+              - generic [ref=e1783]: 8mos ago
+        - navigation "Pagination" [ref=e961]:
+          - button "1" [ref=e962] [cursor=pointer]
+          - button "2" [ref=e963] [cursor=pointer]
+          - button "3" [ref=e964] [cursor=pointer]
+          - button "4" [ref=e965] [cursor=pointer]
+          - button "5" [ref=e966] [cursor=pointer]
+          - button "Next page" [ref=e967] [cursor=pointer]:
+            - img [ref=e968]
+          - button "Last page" [ref=e970] [cursor=pointer]:
+            - img [ref=e971]
+    - contentinfo [ref=e112]:
+      - generic [ref=e113]:
+        - generic [ref=e114]:
+          - link "Comix home" [ref=e115] [cursor=pointer]:
+            - /url: /
+            - img [ref=e116]
+            - img [ref=e118]
+          - paragraph [ref=e120]: Manga and webtoons made simple — clean reader, fastest updates, always current.
+        - navigation [ref=e121]:
+          - generic [ref=e122]:
+            - heading "Discover" [level=4] [ref=e123]
+            - link "Trending Webtoon" [ref=e124] [cursor=pointer]:
+              - /url: /browse?sort=views_7d%3Adesc&types=manhwa%2Cmanhua
+            - link "Trending Manga" [ref=e125] [cursor=pointer]:
+              - /url: /browse?sort=views_7d%3Adesc&types=manga
+            - link "Browse all" [ref=e126] [cursor=pointer]:
+              - /url: /browse
+          - generic [ref=e127]:
+            - heading "Community" [level=4] [ref=e128]
+            - link "Upload Request" [ref=e129] [cursor=pointer]:
+              - /url: /upload-request
+            - link "Upload Rules" [ref=e130] [cursor=pointer]:
+              - /url: /upload-rules
+            - link "Unofficial Discord" [ref=e131] [cursor=pointer]:
+              - /url: https://discord.gg/at5d9rkfUy
+          - generic [ref=e132]:
+            - heading "Comix" [level=4] [ref=e133]
+            - link "Contact Us" [ref=e134] [cursor=pointer]:
+              - /url: /contact
+            - link "Install PWA" [ref=e135] [cursor=pointer]:
+              - /url: /install-pwa
+            - link "Credits" [ref=e136] [cursor=pointer]:
+              - /url: /credits
+      - generic [ref=e138]:
+        - paragraph [ref=e139]: © 2026 Comix
+        - paragraph [ref=e140]:
+          - text: Made with
+          - img [ref=e141]
+          - generic [ref=e143]: "&"
+          - img [ref=e144]
+          - text: for Manga Readers
+  - generic:
+    - status
+  - link [ref=e974]:
+    - /url: "#"

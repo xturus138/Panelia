@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { doc, getDoc, setDoc } from '~/infrastructure/db/db-gateway';
 import { db } from '~/lib/firebase';
-import { sourceGateway } from '~/infrastructure/sources';
+import { sourceRegistry } from '~/infrastructure/sources';
 import { statusService } from '~/infrastructure/services';
 import { getScrapeSession, type ChapterInfo } from '~/services/scrape/sessionStore';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
@@ -25,7 +25,7 @@ export function useReaderChapterViewModel(
   toast: {
     loading: (msg: string) => { id: string; update: (msg: string) => void; dismiss: () => void };
     error: (msg: string) => string;
-    success: (msg: string) => string;
+    success: (msg: string) => string
   }
 ) {
   const { uid, loading: authLoading } = useAuth();
@@ -62,45 +62,24 @@ export function useReaderChapterViewModel(
     setCurrentPageIndex(0);
   }, [updateSettings]);
 
-  // chapterId format: "scrape:{sourceId}:ch:{hash}" or "{sourceId}:ch:{hash}" or "{sourceId}:{id}"
-  const chIdx = chapterId.indexOf(':ch:');
-  let sourceId: string;
-  if (chIdx > 0) {
-    const prefix = chapterId.substring(0, chIdx);
-    if (prefix.startsWith('scrape:')) {
-      sourceId = prefix; // Already has scrape: prefix
-    } else {
-      sourceId = `scrape:${prefix}`; // Legacy format without scrape: prefix
-    }
-  } else {
-    sourceId = chapterId.split(':')[0];
-  }
-  const provider = sourceGateway.getProvider(sourceId);
-  const isScrapeSource = provider instanceof ScrapeAdapter;
-
-  // Debug logging for troubleshooting
-  useEffect(() => {
-    console.log('[useReaderChapter]', {
-      chapterId,
-      sourceId,
-      providerFound: !!provider,
-      isScrapeSource,
-      providerType: provider?.constructor?.name,
-    });
-  }, [chapterId, sourceId, provider, isScrapeSource]);
+  const sourceId = chapterId.startsWith('scrape:') ? chapterId.split(':')[1] : '';
 
   const loadScrapeChapter = useCallback(async () => {
     setLoading(true);
     setError(null);
     const loadingToast = toast.loading('Mencari chapter...');
     try {
-      if (!provider || !(provider instanceof ScrapeAdapter)) {
-        throw new Error(`Scrape adapter not found for source: ${sourceId}`);
+      const parts = chapterId.split(':');
+      if (parts.length < 4 || parts[0] !== 'scrape' || parts[2] !== 'ch') {
+        throw new Error('Format ID chapter tidak valid');
       }
+
+      const sId = parts[1];
+      const registrySourceId = `scrape:${sId}`;
 
       if (!uid) throw new Error('Login required');
       const chapterSnap = await getDoc(doc(db, 'users', uid, 'chapters', chapterId));
-      const chapter = chapterSnap.exists() ? (chapterSnap.data() as any) : null;
+      const chapter = chapterSnap.exists() ? chapterSnap.data() as any : null;
       if (chapter) {
         if (chapter.lastReadPage) setCurrentPageIndex(chapter.lastReadPage);
         if (chapter.status) setChapterStatus(chapter.status);
@@ -115,33 +94,55 @@ export function useReaderChapterViewModel(
       }
 
       let url = chapter?.url;
+      let adapter: ScrapeAdapter | null = null;
 
       if (!url) {
-        const session = getScrapeSession(sourceId);
+        const session = getScrapeSession(sId);
         if (session) {
           url = session.chapterUrls[chapterId];
+          adapter = new ScrapeAdapter(sId, session.config, session.baseUrl);
         }
+      }
+
+      if (!adapter) {
+        const provider = sourceRegistry.getOrRehydrate(registrySourceId);
+        adapter = provider instanceof ScrapeAdapter ? provider : null;
+        if (!adapter) {
+          const savedSourceSnap = await getDoc(doc(db, 'users', uid, 'scrapeSources', sId));
+          if (savedSourceSnap.exists()) {
+            const savedSource = savedSourceSnap.data() as any;
+            sourceRegistry.registerScrapeSource(savedSource.id, savedSource.config, savedSource.baseUrl);
+            adapter = sourceRegistry.get(registrySourceId) as ScrapeAdapter | null;
+          }
+        }
+        if (!adapter) {
+          const { getPreset } = await import('~/services/scrape/presets');
+          const preset = getPreset(sId.replace('preset-', ''));
+          if (preset) {
+            adapter = new ScrapeAdapter(sId, preset.config, preset.baseUrl);
+          }
+        }
+        if (!adapter) throw new Error(`Scrape adapter not found for source: ${registrySourceId}`);
       }
 
       if (!url) {
         const mangaIdParam = searchParams.get('manga');
-        if (mangaIdParam) {
-          const parts = mangaIdParam.split(':');
-          const mangaUrlSlug = parts[0] === 'scrape' ? parts.slice(2).join(':') : parts.slice(1).join(':');
+        if (mangaIdParam && mangaIdParam.startsWith('scrape:')) {
+          const mangaParts = mangaIdParam.split(':');
+          const mangaUrlSlug = mangaParts.slice(2).join(':');
           if (mangaUrlSlug) {
-            const baseUrl = provider.sourceUrl;
+            const baseUrl = adapter.sourceUrl;
             const liveMangaUrl = `${baseUrl.replace(/\/+$/, '')}/manga/${mangaUrlSlug}/`;
+
             const res = await fetch(`/api/proxy?url=${encodeURIComponent(liveMangaUrl)}`);
             if (res.ok) {
               const html = await res.text();
               const processedHtml = html
                 .replace(/<head>/i, `<head><base href="${liveMangaUrl}" />`)
-                .replace(
-                  /\sdata-(?:src|lazy-src|original)\s*=\s*(['"])(.*?)\1/gi,
-                  (_, quote, val) => ` src=${quote}${val}${quote} data-processed="true"`
-                );
-              const parsedManga = provider.parseMangaPage(processedHtml);
-              const matchedChapter = parsedManga.chapters.find((c) => c.id === chapterId);
+                .replace(/\sdata-(?:src|lazy-src|original)\s*=\s*(['"])(.*?)\1/gi,
+                  (_, quote, val) => ` src=${quote}${val}${quote} data-processed="true"`);
+              const parsedManga = adapter.parseMangaPage(processedHtml);
+              const matchedChapter = parsedManga.chapters.find(c => c.id === chapterId);
               if (matchedChapter) url = matchedChapter.url;
             }
           }
@@ -159,15 +160,13 @@ export function useReaderChapterViewModel(
       }
       const html = await response.text();
 
-      const scrapedPages = provider.parseChapterPage(html);
+      const scrapedPages = adapter.parseChapterPage(html);
       const refererUrl = url;
 
-      setPages(
-        scrapedPages.map((page) => ({
-          index: page.index,
-          imageUrl: `/api/proxy?url=${encodeURIComponent(page.imageUrl)}&referer=${encodeURIComponent(refererUrl)}`,
-        }))
-      );
+      setPages(scrapedPages.map((page) => ({
+        index: page.index,
+        imageUrl: `/api/proxy?url=${encodeURIComponent(page.imageUrl)}&referer=${encodeURIComponent(refererUrl)}`,
+      })));
       loadingToast.dismiss();
     } catch (err) {
       loadingToast.dismiss();
@@ -176,11 +175,11 @@ export function useReaderChapterViewModel(
     } finally {
       setLoading(false);
     }
-  }, [chapterId, uid, toast, searchParams, sourceId, provider]);
+  }, [chapterId, uid, toast, searchParams]);
 
   useEffect(() => {
     if (!chapterId) return;
-    if (!isScrapeSource) {
+    if (!chapterId.startsWith('scrape:')) {
       setLoading(true);
       setPages(generatePlaceholderPages(5));
       setLoading(false);
@@ -193,10 +192,10 @@ export function useReaderChapterViewModel(
       return;
     }
     void loadScrapeChapter();
-  }, [chapterId, authLoading, uid, loadScrapeChapter, isScrapeSource]);
+  }, [chapterId, authLoading, uid, loadScrapeChapter]);
 
   useEffect(() => {
-    if (!sourceId || !isScrapeSource) return;
+    if (!sourceId) return;
     const session = getScrapeSession(sourceId);
     if (!session) return;
     setMangaInfo({
@@ -211,10 +210,8 @@ export function useReaderChapterViewModel(
       setSavedInLib(false);
       return;
     }
-    void getDoc(doc(db, 'users', uid, 'libraryEntries', session.mangaId)).then((snap) =>
-      setSavedInLib(Boolean(snap.exists()))
-    );
-  }, [sourceId, uid, isScrapeSource]);
+    void getDoc(doc(db, 'users', uid, 'libraryEntries', session.mangaId)).then((snap) => setSavedInLib(Boolean(snap.exists())));
+  }, [sourceId, uid]);
 
   useEffect(() => {
     if (pages.length === 0 || chapterViewed) return;
@@ -224,9 +221,9 @@ export function useReaderChapterViewModel(
     if (chapterStatus === 'unread') {
       setChapterStatus('viewed');
       if (!uid) return;
-      void statusService.markChapterStatus(uid, chapterId, mangaId, 'viewed', 0);
+    void statusService.markChapterStatus(uid, chapterId, mangaId, 'viewed', 0);
     }
-  }, [pages, chapterViewed, mangaInfo, searchParams, chapterStatus, chapterId, uid]);
+  }, [pages, chapterViewed, mangaInfo, searchParams, chapterStatus, chapterId]);
 
   useEffect(() => {
     if (pages.length === 0 || chapterStatus === 'completed') return;
@@ -237,7 +234,7 @@ export function useReaderChapterViewModel(
     setChapterStatus('completed');
     if (!uid) return;
     void statusService.markChapterStatus(uid, chapterId, mangaId, 'completed', pages.length - 1);
-  }, [currentPageIndex, pages.length, chapterId, mangaInfo, searchParams, chapterStatus, chapterViewed, uid]);
+  }, [currentPageIndex, pages.length, chapterId, mangaInfo, searchParams, chapterStatus, chapterViewed]);
 
   useEffect(() => {
     if (!chapterViewed || pages.length === 0) return;
@@ -250,7 +247,7 @@ export function useReaderChapterViewModel(
       }
     }, 800);
     return () => clearTimeout(t);
-  }, [currentPageIndex, chapterViewed, pages.length, mangaInfo, searchParams, chapterStatus, chapterId, uid]);
+  }, [currentPageIndex, chapterViewed, pages.length, mangaInfo, searchParams, chapterStatus, chapterId]);
 
   const handleBack = useCallback(() => {
     if (window.parent !== window) {
@@ -275,36 +272,44 @@ export function useReaderChapterViewModel(
     setSaving(true);
     const loadingToast = toast.loading('Menyimpan ke library...');
     try {
+      const session = getScrapeSession(mangaInfo.sourceId);
+      if (!session) {
+        loadingToast.dismiss();
+        toast.error('Session tidak ditemukan');
+        return;
+      }
+
       if (!uid) {
         toast.error('Login required');
         return;
       }
+      await setDoc(doc(db, 'users', uid, 'scrapeSources', mangaInfo.sourceId), {
+        id: mangaInfo.sourceId,
+        name: mangaInfo.title,
+        baseUrl: session.baseUrl,
+        config: session.config,
+        createdAt: new Date().toISOString(),
+      }, { merge: true });
 
-      const compositeMangaId = `${mangaInfo.sourceId}:${mangaInfo.mangaId}`;
-
-      await setDoc(
-        doc(db, 'users', uid, 'manga', compositeMangaId),
-        {
-          id: compositeMangaId,
-          sourceId: mangaInfo.sourceId,
-          title: mangaInfo.title,
-          coverUrl: mangaInfo.coverUrl,
-          author: '',
-          artist: '',
-          status: 'unknown',
-          description: '',
-          genres: [],
-          tags: [],
-          url: mangaInfo.sourceUrl,
-        } as any,
-        { merge: true }
-      );
+      await setDoc(doc(db, 'users', uid, 'manga', mangaInfo.mangaId), {
+        id: mangaInfo.mangaId,
+        sourceId: 'scrape',
+        title: mangaInfo.title,
+        coverUrl: mangaInfo.coverUrl,
+        author: '',
+        artist: '',
+        status: 'unknown',
+        description: '',
+        genres: [],
+        tags: [],
+        url: mangaInfo.sourceUrl,
+      } as any, { merge: true });
 
       const chapterRows = [...mangaInfo.chapters]
         .sort((a, b) => a.chapterNumber - b.chapterNumber)
         .map((ch) => ({
           id: ch.id,
-          mangaId: compositeMangaId,
+          mangaId: mangaInfo.mangaId,
           chapterNumber: ch.chapterNumber,
           title: ch.title,
           scanlator: '',
@@ -312,23 +317,17 @@ export function useReaderChapterViewModel(
           pageCount: 0,
           read: false,
           lastReadPage: 0,
-          url: getScrapeSession(mangaInfo.sourceId)?.chapterUrls[ch.id] || '',
+          url: session.chapterUrls[ch.id] || '',
           status: 'unread' as const,
         }));
-      await Promise.all(
-        chapterRows.map((row) => setDoc(doc(db, 'users', uid, 'chapters', row.id), row, { merge: true }))
-      );
+      await Promise.all(chapterRows.map((row) => setDoc(doc(db, 'users', uid, 'chapters', row.id), row, { merge: true })));
 
-      await setDoc(
-        doc(db, 'users', uid, 'libraryEntries', compositeMangaId),
-        {
-          mangaId: compositeMangaId,
-          categories: [],
-          dateAdded: new Date().toISOString(),
-          unreadCount: chapterRows.length,
-        },
-        { merge: true }
-      );
+      await setDoc(doc(db, 'users', uid, 'libraryEntries', mangaInfo.mangaId), {
+        mangaId: mangaInfo.mangaId,
+        categories: [],
+        dateAdded: new Date().toISOString(),
+        unreadCount: chapterRows.length,
+      }, { merge: true });
 
       setSavedInLib(true);
       loadingToast.dismiss();
@@ -341,15 +340,12 @@ export function useReaderChapterViewModel(
     }
   }, [mangaInfo, uid, toast]);
 
-  const navigateToChapter = useCallback(
-    (chId: string) => {
-      setShowChapterList(false);
-      setControlsVisible(false);
-      const mangaParam = mangaInfo?.mangaId ? `?manga=${encodeURIComponent(mangaInfo.mangaId)}` : '';
-      router.push(`/reader/${encodeURIComponent(chId)}${mangaParam}`);
-    },
-    [mangaInfo, router]
-  );
+  const navigateToChapter = useCallback((chId: string) => {
+    setShowChapterList(false);
+    setControlsVisible(false);
+    const mangaParam = mangaInfo?.mangaId ? `?manga=${encodeURIComponent(mangaInfo.mangaId)}` : '';
+    router.push(`/reader/${encodeURIComponent(chId)}${mangaParam}`);
+  }, [mangaInfo, router]);
 
   const toggleControls = useCallback(() => setControlsVisible((v) => !v), []);
 

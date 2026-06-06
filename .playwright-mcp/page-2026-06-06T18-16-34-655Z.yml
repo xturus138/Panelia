@@ -1,0 +1,115 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - button "Open custom lists menu" [ref=e8] [cursor=pointer]:
+            - img
+          - generic [ref=e10]:
+            - link "logo" [ref=e11] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e13]:
+                - img [ref=e15]
+                - img "logo" [ref=e16]
+            - link "ComicK The Tracker" [ref=e17] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e19]:
+                - generic [ref=e20]: ComicK
+                - generic [ref=e21]: The Tracker
+        - generic [ref=e24]:
+          - button "Search" [ref=e25] [cursor=pointer]:
+            - img [ref=e26]
+            - generic [ref=e29]: Search
+          - generic: Ctrl K
+          - generic [ref=e30]:
+            - heading "Search" [level=2] [ref=e31]
+            - paragraph [ref=e32]: Search comics, groups, users, and authors.
+        - generic [ref=e33]:
+          - navigation:
+            - list
+          - button [ref=e34] [cursor=pointer]:
+            - img [ref=e35]
+          - generic [ref=e39]:
+            - link "Filter comics by gender" [ref=e41] [cursor=pointer]:
+              - /url: /filter#section=gender
+              - img [ref=e43]
+            - link [ref=e47] [cursor=pointer]:
+              - /url: /languages
+              - img [ref=e48]
+            - link [ref=e50] [cursor=pointer]:
+              - /url: https://comick.dev/user/login?return_to=https%3A%2F%2Fcomick.dev%2Fcomic%2Fsolo-leveling-rb646f02&refresh=true
+              - img [ref=e51]
+    - navigation [ref=e53]:
+      - generic [ref=e54]:
+        - link "Home" [ref=e55] [cursor=pointer]:
+          - /url: /
+          - img [ref=e56]
+          - generic [ref=e58]: Home
+        - link "My List" [ref=e59] [cursor=pointer]:
+          - /url: /protected?return_to=https://comick.dev
+          - img [ref=e60]
+          - generic [ref=e62]: My List
+        - link "Categories" [ref=e63] [cursor=pointer]:
+          - /url: /categories
+          - img [ref=e64]
+          - generic [ref=e66]: Categories
+        - link "Search" [ref=e67] [cursor=pointer]:
+          - /url: /search
+          - img [ref=e68]
+          - generic [ref=e70]: Search
+        - link "Notifications" [ref=e71] [cursor=pointer]:
+          - /url: /notifications
+          - img [ref=e73]
+          - generic [ref=e75]: Notifications
+        - link "Settings" [ref=e76] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e77]
+          - generic [ref=e79]: Settings
+    - main [ref=e80]:
+      - generic:
+        - region "Notifications alt+T"
+      - generic [ref=e84]:
+        - link "logo" [ref=e86] [cursor=pointer]:
+          - /url: /
+          - img "logo" [ref=e87]
+        - generic [ref=e88]:
+          - heading "404" [level=1] [ref=e89]
+          - generic [ref=e90]: The URL you are looking for is not found.
+          - paragraph [ref=e91]: Do you want to find info about this comic ?
+          - link "solo-leveling-rb646f02" [ref=e92] [cursor=pointer]:
+            - /url: /search?q=solo-leveling-rb646f02
+    - contentinfo [ref=e93]:
+      - generic [ref=e95]:
+        - generic [ref=e96]:
+          - link "FAQ" [ref=e97] [cursor=pointer]:
+            - /url: /faq
+          - link "Status Page" [ref=e98] [cursor=pointer]:
+            - /url: https://comick.statuspage.io/
+          - link "Roadmap" [ref=e99] [cursor=pointer]:
+            - /url: https://www.notion.so/c76b651424df4d46837e4710301340bd?v=c152efba2ae84bb6b0c2a615539d83e2
+          - link "Changelog" [ref=e100] [cursor=pointer]:
+            - /url: /changelog
+          - link "About" [ref=e101] [cursor=pointer]:
+            - /url: /about
+          - link "Credits" [ref=e102] [cursor=pointer]:
+            - /url: /credits
+          - link "DMCA" [ref=e103] [cursor=pointer]:
+            - /url: /dmca
+          - link "Term of Use" [ref=e104] [cursor=pointer]:
+            - /url: /term-of-use
+          - link "Privacy" [ref=e105] [cursor=pointer]:
+            - /url: /privacy-policy
+        - generic [ref=e107]:
+          - text: "© 2021-2026 | Last Updated: an hour ago"
+          - generic [ref=e108]:
+            - text: "Build: 4807"
+            - link "Development Activity" [ref=e109] [cursor=pointer]:
+              - /url: /project-activity
+        - generic [ref=e110]:
+          - link [ref=e111] [cursor=pointer]:
+            - /url: https://discord.gg/comick
+            - img [ref=e112]
+          - link [ref=e115] [cursor=pointer]:
+            - /url: https://reddit.com/r/ComicK/
+            - img [ref=e116]
+  - alert [ref=e124]

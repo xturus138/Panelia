@@ -1,0 +1,753 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Comix home" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e6]
+          - img [ref=e8]
+        - generic [ref=e11]:
+          - img [ref=e12]
+          - textbox "Search any title..." [ref=e15]
+          - link "Browse" [ref=e16] [cursor=pointer]:
+            - /url: /browse
+        - navigation [ref=e17]:
+          - button "Settings" [ref=e19] [cursor=pointer]:
+            - img [ref=e20]
+          - button "Menu" [ref=e24] [cursor=pointer]:
+            - img [ref=e25]
+          - button "Log in" [ref=e26] [cursor=pointer]
+    - main [ref=e27]:
+      - article [ref=e28]:
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - img "Anyone Can Beat the Original" [ref=e33]
+            - generic [ref=e34]:
+              - button "Start reading" [ref=e35] [cursor=pointer]:
+                - img [ref=e36]
+                - generic [ref=e38]: Start reading
+              - button "Follow" [ref=e40] [cursor=pointer]:
+                - img [ref=e41]
+                - generic [ref=e43]: Follow
+                - img [ref=e44]
+              - radiogroup "Rate this title" [ref=e47]:
+                - radio "Rate 1 star" [ref=e48] [cursor=pointer]:
+                  - img [ref=e49]
+                - radio "Rate 2 stars" [ref=e51] [cursor=pointer]:
+                  - img [ref=e52]
+                - radio "Rate 3 stars" [ref=e54] [cursor=pointer]:
+                  - img [ref=e55]
+                - radio "Rate 4 stars" [ref=e57] [cursor=pointer]:
+                  - img [ref=e58]
+                - radio "Rate 5 stars" [ref=e60] [cursor=pointer]:
+                  - img [ref=e61]
+              - button "Edit history" [ref=e64] [cursor=pointer]:
+                - img [ref=e65]
+                - generic [ref=e68]: Edit history
+          - generic [ref=e69]:
+            - generic [ref=e70]:
+              - link "Home" [ref=e71] [cursor=pointer]:
+                - /url: /
+              - generic [ref=e72]: /
+              - link "MANHWA" [ref=e73] [cursor=pointer]:
+                - /url: /browse?types=manhwa
+            - heading "Anyone Can Beat the Original" [level=1] [ref=e75]
+            - generic [ref=e76]:
+              - button "Anyone Beats the Original / 원작은 아무나 비트나 / Wonjageun Amuna Biteuna / Not Anyone Can Beat The Original / You Think It's Easy Rewriting A Story?" [ref=e77] [cursor=pointer]:
+                - img [ref=e78]
+                - generic [ref=e81]: Anyone Beats the Original / 원작은 아무나 비트나 / Wonjageun Amuna Biteuna / Not Anyone Can Beat The Original / You Think It's Easy Rewriting A Story?
+                - img [ref=e82]
+              - list [ref=e84]:
+                - listitem [ref=e85]: Anyone Beats the Original
+                - listitem [ref=e86]: 원작은 아무나 비트나
+                - listitem [ref=e87]: Wonjageun Amuna Biteuna
+                - listitem [ref=e88]: Not Anyone Can Beat The Original
+                - listitem [ref=e89]: You Think It's Easy Rewriting A Story?
+            - generic [ref=e90]:
+              - generic [ref=e91]: MANHWA
+              - generic [ref=e92]: SAFE
+              - generic [ref=e93]: "2025"
+              - generic [ref=e94]: RELEASING
+              - generic [ref=e95]: KO
+            - generic [ref=e96]:
+              - 'generic "Ranked #14" [ref=e97]':
+                - img [ref=e98]
+                - strong [ref=e102]: "#14"
+              - generic [ref=e103]: ·
+              - generic [ref=e104]:
+                - strong [ref=e105]: ★ 7.9
+                - generic [ref=e106]: by 1,366 users
+              - generic [ref=e107]: ·
+              - generic [ref=e108]:
+                - strong [ref=e109]: 36,110
+                - generic [ref=e110]: followed
+            - generic [ref=e111]:
+              - paragraph [ref=e112]:
+                - text: She was in possession of an “Extra 1”, who married the criminal and died in a violent manner. I don’t think I need to get married. I proposed to another man, ran away from home, and did all sorts of other things.
+                - text: “So marry me, Evangeline Clauda.”
+                - text: Five years of possession's life, three weeks before entering the original! In the end, she was proposed to the criminal.
+                - text: Am I… is this really a doomed ending?
+                - text: The more I twist the original, the closer I get to the original?! Will she be able to safely protect her life and love and face happiness?
+              - button "[view more]" [ref=e114] [cursor=pointer]
+            - generic [ref=e117]:
+              - generic [ref=e118]:
+                - term [ref=e119]: Genres
+                - definition [ref=e120]:
+                  - list [ref=e121]:
+                    - listitem [ref=e122]:
+                      - link "Comedy" [ref=e123] [cursor=pointer]:
+                        - /url: /browse?genres_in=9
+                    - listitem [ref=e124]:
+                      - link "Drama" [ref=e125] [cursor=pointer]:
+                        - /url: /browse?genres_in=11
+                    - listitem [ref=e126]:
+                      - link "Fantasy" [ref=e127] [cursor=pointer]:
+                        - /url: /browse?genres_in=12
+                    - listitem [ref=e128]:
+                      - link "Isekai" [ref=e129] [cursor=pointer]:
+                        - /url: /browse?genres_in=16
+                    - listitem [ref=e130]:
+                      - link "Romance" [ref=e131] [cursor=pointer]:
+                        - /url: /browse?genres_in=23
+              - generic [ref=e132]:
+                - term [ref=e133]: Tags
+                - definition [ref=e134]:
+                  - list [ref=e135]:
+                    - listitem [ref=e136]:
+                      - link "European Ambience" [ref=e137] [cursor=pointer]:
+                        - /url: /browse?genres_in=98871
+                    - listitem [ref=e138]:
+                      - link "Full Color" [ref=e139] [cursor=pointer]:
+                        - /url: /browse?genres_in=98872
+                    - listitem [ref=e140]:
+                      - link "Nobility/Aristocracy" [ref=e141] [cursor=pointer]:
+                        - /url: /browse?genres_in=98876
+                    - listitem [ref=e142]:
+                      - link "Webtoon/Webcomic" [ref=e143] [cursor=pointer]:
+                        - /url: /browse?genres_in=98884
+                    - listitem [ref=e144]:
+                      - link "Based on a Novel" [ref=e145] [cursor=pointer]:
+                        - /url: /browse?genres_in=98891
+                    - listitem [ref=e146]:
+                      - link "Beautiful Female Lead" [ref=e147] [cursor=pointer]:
+                        - /url: /browse?genres_in=98919
+                    - listitem [ref=e148]:
+                      - link "Based on a Korean Novel" [ref=e149] [cursor=pointer]:
+                        - /url: /browse?genres_in=98957
+                    - listitem [ref=e150]:
+                      - button "more" [ref=e151] [cursor=pointer]:
+                        - generic [ref=e152]: more
+                        - img [ref=e153]
+              - generic [ref=e155]:
+                - term [ref=e156]: Demographics
+                - definition [ref=e157]:
+                  - list [ref=e158]:
+                    - listitem [ref=e159]:
+                      - link "Shoujo" [ref=e160] [cursor=pointer]:
+                        - /url: /browse?demos=1
+              - generic [ref=e161]:
+                - term [ref=e162]: Formats
+                - definition [ref=e163]:
+                  - list [ref=e164]:
+                    - listitem [ref=e165]:
+                      - link "Adaptation" [ref=e166] [cursor=pointer]:
+                        - /url: /browse?genres_in=93167
+                    - listitem [ref=e167]:
+                      - link "Long Strip" [ref=e168] [cursor=pointer]:
+                        - /url: /browse?genres_in=93170
+                    - listitem [ref=e169]:
+                      - link "Full Color" [ref=e170] [cursor=pointer]:
+                        - /url: /browse?genres_in=93172
+              - generic [ref=e171]:
+                - term [ref=e172]: Authors
+                - definition [ref=e173]:
+                  - list [ref=e174]:
+                    - listitem [ref=e175]:
+                      - link "Baek Seoha" [ref=e176] [cursor=pointer]:
+                        - /url: /browse?authors=5489
+              - generic [ref=e177]:
+                - term [ref=e178]: Artists
+                - definition [ref=e179]:
+                  - list [ref=e180]:
+                    - listitem [ref=e181]:
+                      - link "본티 우동" [ref=e182] [cursor=pointer]:
+                        - /url: /browse?artists=39536
+              - generic [ref=e183]:
+                - term [ref=e184]: Trackers
+                - definition [ref=e185]:
+                  - list [ref=e186]:
+                    - listitem [ref=e187]:
+                      - link "al" [ref=e188] [cursor=pointer]:
+                        - /url: https://anilist.co/manga/188260/
+                        - generic [ref=e189]: al
+                    - listitem [ref=e190]:
+                      - link "mal" [ref=e191] [cursor=pointer]:
+                        - /url: https://myanimelist.net/manga/180228/
+                        - generic [ref=e192]: mal
+                    - listitem [ref=e193]:
+                      - link "mu" [ref=e194] [cursor=pointer]:
+                        - /url: https://www.mangaupdates.com/series/3tmkt7p/
+                        - generic [ref=e195]: mu
+                    - listitem [ref=e196]:
+                      - link "md" [ref=e197] [cursor=pointer]:
+                        - /url: https://mangadex.org/title/a32a5b93-94a6-4b42-aed6-63c093336f13/
+                        - generic [ref=e198]: md
+                    - listitem [ref=e199]:
+                      - link "mb" [ref=e200] [cursor=pointer]:
+                        - /url: https://mangabaka.org/87319/
+                        - generic [ref=e201]: mb
+        - generic [ref=e202]:
+          - generic [ref=e203]:
+            - generic [ref=e204]:
+              - heading "Chapters" [level=2] [ref=e206]
+              - generic [ref=e207]:
+                - generic [ref=e208]:
+                  - img [ref=e209]
+                  - textbox "Search chapter…" [ref=e212]
+                - button "All groups" [ref=e214] [cursor=pointer]:
+                  - img [ref=e215]
+                  - generic [ref=e220]: All groups
+                  - img [ref=e221]
+                - group "Sort" [ref=e223]:
+                  - button "Chapter" [pressed] [ref=e224] [cursor=pointer]:
+                    - img [ref=e225]
+                    - generic [ref=e227]: Chapter
+                  - button "Volume" [ref=e228] [cursor=pointer]:
+                    - generic [ref=e229]: Volume
+                  - button "Date" [ref=e230] [cursor=pointer]:
+                    - generic [ref=e231]: Date
+              - list [ref=e232]:
+                - listitem [ref=e233]:
+                  - generic [ref=e234]:
+                    - link "Ch.73" [ref=e235] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/10067247-chapter-73
+                      - generic [ref=e236]: Ch.73
+                    - generic [ref=e237]:
+                      - link "Akaicomic" [ref=e238] [cursor=pointer]:
+                        - /url: /groups/10630
+                        - img [ref=e239]
+                        - generic [ref=e244]: Akaicomic
+                      - generic [ref=e245]: ·
+                      - generic [ref=e246]:
+                        - img [ref=e247]
+                        - text: "67"
+                      - generic [ref=e249]: ·
+                      - generic [ref=e250]: 2d ago
+                  - button "Bookmark this chapter" [ref=e251] [cursor=pointer]:
+                    - img [ref=e252]
+                - listitem [ref=e254]:
+                  - generic [ref=e255]:
+                    - link "Ch.72.8" [ref=e256] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/10049290-chapter-72.8
+                      - generic [ref=e257]: Ch.72.8
+                    - generic [ref=e258]:
+                      - link "Mauve Toons" [ref=e259] [cursor=pointer]:
+                        - /url: /u/wddr58
+                        - img [ref=e260]
+                        - generic [ref=e263]: Mauve Toons
+                      - generic [ref=e264]: ·
+                      - generic [ref=e265]:
+                        - img [ref=e266]
+                        - text: "40"
+                      - generic [ref=e268]: ·
+                      - generic [ref=e269]: 1w ago
+                  - button "Bookmark this chapter" [ref=e270] [cursor=pointer]:
+                    - img [ref=e271]
+                - listitem [ref=e273]:
+                  - generic [ref=e274]:
+                    - link "Ch.72" [ref=e275] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9992225-chapter-72
+                      - generic [ref=e276]: Ch.72
+                    - generic [ref=e277]:
+                      - link "Akaicomic" [ref=e278] [cursor=pointer]:
+                        - /url: /groups/10630
+                        - img [ref=e279]
+                        - generic [ref=e284]: Akaicomic
+                      - generic [ref=e285]: ·
+                      - generic [ref=e286]:
+                        - img [ref=e287]
+                        - text: "40"
+                      - generic [ref=e289]: ·
+                      - generic [ref=e290]: 1w ago
+                  - button "Bookmark this chapter" [ref=e291] [cursor=pointer]:
+                    - img [ref=e292]
+                - listitem [ref=e294]:
+                  - generic [ref=e295]:
+                    - link "Ch.72" [ref=e296] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/10052842-chapter-72
+                      - generic [ref=e297]: Ch.72
+                    - generic [ref=e298]:
+                      - link "Lua Comic" [ref=e299] [cursor=pointer]:
+                        - /url: /groups/9302
+                        - img [ref=e300]
+                        - generic [ref=e305]: Lua Comic
+                      - generic [ref=e306]: ·
+                      - generic [ref=e307]:
+                        - img [ref=e308]
+                        - text: "8"
+                      - generic [ref=e310]: ·
+                      - generic [ref=e311]: 5d ago
+                  - button "Bookmark this chapter" [ref=e312] [cursor=pointer]:
+                    - img [ref=e313]
+                - listitem [ref=e315]:
+                  - generic [ref=e316]:
+                    - link "Ch.71" [ref=e317] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9778001-chapter-71
+                      - generic [ref=e318]: Ch.71
+                    - generic [ref=e319]:
+                      - link "Akaicomic" [ref=e320] [cursor=pointer]:
+                        - /url: /groups/10630
+                        - img [ref=e321]
+                        - generic [ref=e326]: Akaicomic
+                      - generic [ref=e327]: ·
+                      - generic [ref=e328]:
+                        - img [ref=e329]
+                        - text: "103"
+                      - generic [ref=e331]: ·
+                      - generic [ref=e332]: 2w ago
+                  - button "Bookmark this chapter" [ref=e333] [cursor=pointer]:
+                    - img [ref=e334]
+                - listitem [ref=e336]:
+                  - generic [ref=e337]:
+                    - link "Ch.71" [ref=e338] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9926639-chapter-71
+                      - generic [ref=e339]: Ch.71
+                    - generic [ref=e340]:
+                      - link "Lua Comic" [ref=e341] [cursor=pointer]:
+                        - /url: /groups/9302
+                        - img [ref=e342]
+                        - generic [ref=e347]: Lua Comic
+                      - generic [ref=e348]: ·
+                      - generic [ref=e349]:
+                        - img [ref=e350]
+                        - text: "18"
+                      - generic [ref=e352]: ·
+                      - generic [ref=e353]: 1w ago
+                  - button "Bookmark this chapter" [ref=e354] [cursor=pointer]:
+                    - img [ref=e355]
+                - listitem [ref=e357]:
+                  - generic [ref=e358]:
+                    - link "Ch.70" [ref=e359] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9378601-chapter-70
+                      - generic [ref=e360]: Ch.70
+                    - generic [ref=e361]:
+                      - link "RinkoComics" [ref=e362] [cursor=pointer]:
+                        - /url: /groups/9560
+                        - img [ref=e363]
+                        - generic [ref=e368]: RinkoComics
+                      - generic [ref=e369]: ·
+                      - generic [ref=e370]:
+                        - img [ref=e371]
+                        - text: "131"
+                      - generic [ref=e373]: ·
+                      - generic [ref=e374]: 3w ago
+                  - button "Bookmark this chapter" [ref=e375] [cursor=pointer]:
+                    - img [ref=e376]
+                - listitem [ref=e378]:
+                  - generic [ref=e379]:
+                    - link "Ch.70" [ref=e380] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9536811-chapter-70
+                      - generic [ref=e381]: Ch.70
+                    - generic [ref=e382]:
+                      - link "Lua Comic" [ref=e383] [cursor=pointer]:
+                        - /url: /groups/9302
+                        - img [ref=e384]
+                        - generic [ref=e389]: Lua Comic
+                      - generic [ref=e390]: ·
+                      - generic [ref=e391]:
+                        - img [ref=e392]
+                        - text: "11"
+                      - generic [ref=e394]: ·
+                      - generic [ref=e395]: 2w ago
+                  - button "Bookmark this chapter" [ref=e396] [cursor=pointer]:
+                    - img [ref=e397]
+                - listitem [ref=e399]:
+                  - generic [ref=e400]:
+                    - link "Ch.70" [ref=e401] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9777999-chapter-70
+                      - generic [ref=e402]: Ch.70
+                    - generic [ref=e403]:
+                      - link "Akaicomic" [ref=e404] [cursor=pointer]:
+                        - /url: /groups/10630
+                        - img [ref=e405]
+                        - generic [ref=e410]: Akaicomic
+                      - generic [ref=e411]: ·
+                      - generic [ref=e412]:
+                        - img [ref=e413]
+                        - text: "10"
+                      - generic [ref=e415]: ·
+                      - generic [ref=e416]: 2w ago
+                  - button "Bookmark this chapter" [ref=e417] [cursor=pointer]:
+                    - img [ref=e418]
+                - listitem [ref=e420]:
+                  - generic [ref=e421]:
+                    - link "Ch.70" [ref=e422] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9991591-chapter-70
+                      - generic [ref=e423]: Ch.70
+                    - generic [ref=e424]:
+                      - link "MagusManga" [ref=e425] [cursor=pointer]:
+                        - /url: /groups/267
+                        - img [ref=e426]
+                        - generic [ref=e431]: MagusManga
+                      - generic [ref=e432]: ·
+                      - generic [ref=e433]:
+                        - img [ref=e434]
+                        - text: "0"
+                      - generic [ref=e436]: ·
+                      - generic [ref=e437]: 1w ago
+                  - button "Bookmark this chapter" [ref=e438] [cursor=pointer]:
+                    - img [ref=e439]
+                - listitem [ref=e441]:
+                  - generic [ref=e442]:
+                    - link "Ch.69" [ref=e443] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9797925-chapter-69
+                      - generic [ref=e444]: Ch.69
+                    - generic [ref=e445]:
+                      - link "MagusManga" [ref=e446] [cursor=pointer]:
+                        - /url: /groups/267
+                        - img [ref=e447]
+                        - generic [ref=e452]: MagusManga
+                      - generic [ref=e453]: ·
+                      - generic [ref=e454]:
+                        - img [ref=e455]
+                        - text: "5"
+                      - generic [ref=e457]: ·
+                      - generic [ref=e458]: 2w ago
+                  - button "Bookmark this chapter" [ref=e459] [cursor=pointer]:
+                    - img [ref=e460]
+                - listitem [ref=e462]:
+                  - generic [ref=e463]:
+                    - link "Ch.69" [ref=e464] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9000753-chapter-69
+                      - generic [ref=e465]: Ch.69
+                    - generic [ref=e466]:
+                      - link "RinkoComics" [ref=e467] [cursor=pointer]:
+                        - /url: /groups/9560
+                        - img [ref=e468]
+                        - generic [ref=e473]: RinkoComics
+                      - generic [ref=e474]: ·
+                      - generic [ref=e475]:
+                        - img [ref=e476]
+                        - text: "157"
+                      - generic [ref=e478]: ·
+                      - generic [ref=e479]: 1mo ago
+                  - button "Bookmark this chapter" [ref=e480] [cursor=pointer]:
+                    - img [ref=e481]
+                - listitem [ref=e483]:
+                  - generic [ref=e484]:
+                    - link "Ch.69" [ref=e485] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9777995-chapter-69
+                      - generic [ref=e486]: Ch.69
+                    - generic [ref=e487]:
+                      - link "Akaicomic" [ref=e488] [cursor=pointer]:
+                        - /url: /groups/10630
+                        - img [ref=e489]
+                        - generic [ref=e494]: Akaicomic
+                      - generic [ref=e495]: ·
+                      - generic [ref=e496]:
+                        - img [ref=e497]
+                        - text: "6"
+                      - generic [ref=e499]: ·
+                      - generic [ref=e500]: 2w ago
+                  - button "Bookmark this chapter" [ref=e501] [cursor=pointer]:
+                    - img [ref=e502]
+                - listitem [ref=e504]:
+                  - generic [ref=e505]:
+                    - link "Ch.69" [ref=e506] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9293274-chapter-69
+                      - generic [ref=e507]: Ch.69
+                    - generic [ref=e508]:
+                      - link "Lua Comic" [ref=e509] [cursor=pointer]:
+                        - /url: /groups/9302
+                        - img [ref=e510]
+                        - generic [ref=e515]: Lua Comic
+                      - generic [ref=e516]: ·
+                      - generic [ref=e517]:
+                        - img [ref=e518]
+                        - text: "16"
+                      - generic [ref=e520]: ·
+                      - generic [ref=e521]: 3w ago
+                  - button "Bookmark this chapter" [ref=e522] [cursor=pointer]:
+                    - img [ref=e523]
+                - listitem [ref=e525]:
+                  - generic [ref=e526]:
+                    - link "Ch.68" [ref=e527] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9777990-chapter-68
+                      - generic [ref=e528]: Ch.68
+                    - generic [ref=e529]:
+                      - link "Akaicomic" [ref=e530] [cursor=pointer]:
+                        - /url: /groups/10630
+                        - img [ref=e531]
+                        - generic [ref=e536]: Akaicomic
+                      - generic [ref=e537]: ·
+                      - generic [ref=e538]:
+                        - img [ref=e539]
+                        - text: "9"
+                      - generic [ref=e541]: ·
+                      - generic [ref=e542]: 2w ago
+                  - button "Bookmark this chapter" [ref=e543] [cursor=pointer]:
+                    - img [ref=e544]
+                - listitem [ref=e546]:
+                  - generic [ref=e547]:
+                    - link "Ch.68" [ref=e548] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9609574-chapter-68
+                      - generic [ref=e549]: Ch.68
+                    - generic [ref=e550]:
+                      - link "MagusManga" [ref=e551] [cursor=pointer]:
+                        - /url: /groups/267
+                        - img [ref=e552]
+                        - generic [ref=e557]: MagusManga
+                      - generic [ref=e558]: ·
+                      - generic [ref=e559]:
+                        - img [ref=e560]
+                        - text: "4"
+                      - generic [ref=e562]: ·
+                      - generic [ref=e563]: 2w ago
+                  - button "Bookmark this chapter" [ref=e564] [cursor=pointer]:
+                    - img [ref=e565]
+                - listitem [ref=e567]:
+                  - generic [ref=e568]:
+                    - link "Ch.68" [ref=e569] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/8998082-chapter-68
+                      - generic [ref=e570]: Ch.68
+                    - generic [ref=e571]:
+                      - link "Lua Comic" [ref=e572] [cursor=pointer]:
+                        - /url: /groups/9302
+                        - img [ref=e573]
+                        - generic [ref=e578]: Lua Comic
+                      - generic [ref=e579]: ·
+                      - generic [ref=e580]:
+                        - img [ref=e581]
+                        - text: "27"
+                      - generic [ref=e583]: ·
+                      - generic [ref=e584]: 1mo ago
+                  - button "Bookmark this chapter" [ref=e585] [cursor=pointer]:
+                    - img [ref=e586]
+                - listitem [ref=e588]:
+                  - generic [ref=e589]:
+                    - link "Ch.68" [ref=e590] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/8980934-chapter-68
+                      - generic [ref=e591]: Ch.68
+                    - generic [ref=e592]:
+                      - link "RinkoComics" [ref=e593] [cursor=pointer]:
+                        - /url: /groups/9560
+                        - img [ref=e594]
+                        - generic [ref=e599]: RinkoComics
+                      - generic [ref=e600]: ·
+                      - generic [ref=e601]:
+                        - img [ref=e602]
+                        - text: "192"
+                      - generic [ref=e604]: ·
+                      - generic [ref=e605]: 1mo ago
+                  - button "Bookmark this chapter" [ref=e606] [cursor=pointer]:
+                    - img [ref=e607]
+                - listitem [ref=e609]:
+                  - generic [ref=e610]:
+                    - link "Ch.67" [ref=e611] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/9777987-chapter-67
+                      - generic [ref=e612]: Ch.67
+                    - generic [ref=e613]:
+                      - link "Akaicomic" [ref=e614] [cursor=pointer]:
+                        - /url: /groups/10630
+                        - img [ref=e615]
+                        - generic [ref=e620]: Akaicomic
+                      - generic [ref=e621]: ·
+                      - generic [ref=e622]:
+                        - img [ref=e623]
+                        - text: "7"
+                      - generic [ref=e625]: ·
+                      - generic [ref=e626]: 2w ago
+                  - button "Bookmark this chapter" [ref=e627] [cursor=pointer]:
+                    - img [ref=e628]
+                - listitem [ref=e630]:
+                  - generic [ref=e631]:
+                    - link "Ch.67" [ref=e632] [cursor=pointer]:
+                      - /url: /title/l7re-anyone-can-beat-the-original/8959325-chapter-67
+                      - generic [ref=e633]: Ch.67
+                    - generic [ref=e634]:
+                      - link "RinkoComics" [ref=e635] [cursor=pointer]:
+                        - /url: /groups/9560
+                        - img [ref=e636]
+                        - generic [ref=e641]: RinkoComics
+                      - generic [ref=e642]: ·
+                      - generic [ref=e643]:
+                        - img [ref=e644]
+                        - text: "178"
+                      - generic [ref=e646]: ·
+                      - generic [ref=e647]: 1mo ago
+                  - button "Bookmark this chapter" [ref=e648] [cursor=pointer]:
+                    - img [ref=e649]
+              - generic [ref=e651]:
+                - generic [ref=e652]: Showing 1 to 20 of 479 items
+                - navigation "Pagination" [ref=e653]:
+                  - button "1" [ref=e654] [cursor=pointer]
+                  - button "2" [ref=e655] [cursor=pointer]
+                  - button "3" [ref=e656] [cursor=pointer]
+                  - button "4" [ref=e657] [cursor=pointer]
+                  - button "5" [ref=e658] [cursor=pointer]
+                  - button "Next page" [ref=e659] [cursor=pointer]:
+                    - img [ref=e660]
+                  - button "Last page" [ref=e662] [cursor=pointer]:
+                    - img [ref=e663]
+            - generic [ref=e666]:
+              - generic [ref=e667]:
+                - paragraph [ref=e668]:
+                  - strong [ref=e669]: There might be an issue where certain images don't load. We are aware of this and it will be fixed, for now please try another translation group.
+                - paragraph [ref=e670]:
+                  - text: "Note: Please take a moment to"
+                  - link "read the comment rules" [ref=e672] [cursor=pointer]:
+                    - /url: https://rentry.co/ComixCommentPolicy
+                  - text: before posting!
+              - generic [ref=e673]:
+                - generic [ref=e675]: 272 comments
+                - generic [ref=e676]:
+                  - button "Best" [ref=e677] [cursor=pointer]
+                  - button "Newest" [ref=e678] [cursor=pointer]
+                  - button "Oldest" [ref=e679] [cursor=pointer]
+              - generic [ref=e681]:
+                - img [ref=e684]
+                - generic [ref=e688]:
+                  - textbox "Share your thoughts about this series…" [ref=e689]
+                  - generic [ref=e690]:
+                    - toolbar "Formatting" [ref=e691]:
+                      - button "Bold" [ref=e692] [cursor=pointer]:
+                        - strong [ref=e693]: B
+                      - button "Quote" [ref=e694] [cursor=pointer]:
+                        - img [ref=e695]
+                      - button "Spoiler" [ref=e698] [cursor=pointer]:
+                        - img [ref=e699]
+                      - button "Show preview" [ref=e704] [cursor=pointer]:
+                        - img [ref=e705]
+                    - generic [ref=e708]:
+                      - button "Cancel" [ref=e709] [cursor=pointer]
+                      - button "Send" [disabled] [ref=e710] [cursor=pointer]
+              - list
+              - button "Load more comments" [disabled] [ref=e712] [cursor=pointer]:
+                - generic [ref=e713]: Load more comments
+          - generic [ref=e714]:
+            - generic [ref=e715]:
+              - heading "Recommendations" [level=2] [ref=e716]
+              - generic [ref=e717]:
+                - button "Previous page" [disabled] [ref=e718]:
+                  - img [ref=e719]
+                - button "Next page" [ref=e721] [cursor=pointer]:
+                  - img [ref=e722]
+            - list [ref=e724]:
+              - listitem [ref=e725]:
+                - link "As the Heart Leads" [ref=e726] [cursor=pointer]:
+                  - /url: /title/8n3d-as-the-heart-leads
+                - generic [ref=e728]:
+                  - link "As the Heart Leads" [ref=e729] [cursor=pointer]:
+                    - /url: /title/8n3d-as-the-heart-leads
+                  - generic [ref=e730]:
+                    - button "Upvote" [ref=e731] [cursor=pointer]:
+                      - img [ref=e732]
+                    - generic [ref=e734]: "59"
+                    - button "Downvote" [ref=e735] [cursor=pointer]:
+                      - img [ref=e736]
+              - listitem [ref=e738]:
+                - link "The Tyrant Wants to Be Good" [ref=e739] [cursor=pointer]:
+                  - /url: /title/3y960-the-tyrant-wants-to-be-good
+                - generic [ref=e741]:
+                  - link "The Tyrant Wants to Be Good" [ref=e742] [cursor=pointer]:
+                    - /url: /title/3y960-the-tyrant-wants-to-be-good
+                  - generic [ref=e743]:
+                    - button "Upvote" [ref=e744] [cursor=pointer]:
+                      - img [ref=e745]
+                    - generic [ref=e747]: "35"
+                    - button "Downvote" [ref=e748] [cursor=pointer]:
+                      - img [ref=e749]
+              - listitem [ref=e751]:
+                - link "Another Typical Fantasy Romance" [ref=e752] [cursor=pointer]:
+                  - /url: /title/jdend-another-typical-fantasy-romance
+                - generic [ref=e754]:
+                  - link "Another Typical Fantasy Romance" [ref=e755] [cursor=pointer]:
+                    - /url: /title/jdend-another-typical-fantasy-romance
+                  - generic [ref=e756]:
+                    - button "Upvote" [ref=e757] [cursor=pointer]:
+                      - img [ref=e758]
+                    - generic [ref=e760]: "34"
+                    - button "Downvote" [ref=e761] [cursor=pointer]:
+                      - img [ref=e762]
+              - listitem [ref=e764]:
+                - link "I Married the Male Lead's Dad" [ref=e765] [cursor=pointer]:
+                  - /url: /title/816k8-i-married-the-male-leads-dad
+                - generic [ref=e767]:
+                  - link "I Married the Male Lead's Dad" [ref=e768] [cursor=pointer]:
+                    - /url: /title/816k8-i-married-the-male-leads-dad
+                  - generic [ref=e769]:
+                    - button "Upvote" [ref=e770] [cursor=pointer]:
+                      - img [ref=e771]
+                    - generic [ref=e773]: "32"
+                    - button "Downvote" [ref=e774] [cursor=pointer]:
+                      - img [ref=e775]
+              - listitem [ref=e777]:
+                - link "The Hero's Savior" [ref=e778] [cursor=pointer]:
+                  - /url: /title/9mg0-the-heros-savior
+                - generic [ref=e780]:
+                  - link "The Hero's Savior" [ref=e781] [cursor=pointer]:
+                    - /url: /title/9mg0-the-heros-savior
+                  - generic [ref=e782]:
+                    - button "Upvote" [ref=e783] [cursor=pointer]:
+                      - img [ref=e784]
+                    - generic [ref=e786]: "29"
+                    - button "Downvote" [ref=e787] [cursor=pointer]:
+                      - img [ref=e788]
+              - listitem [ref=e790]:
+                - link "Miss Not-So Sidekick" [ref=e791] [cursor=pointer]:
+                  - /url: /title/82gd-miss-not-so-sidekick
+                - generic [ref=e793]:
+                  - link "Miss Not-So Sidekick" [ref=e794] [cursor=pointer]:
+                    - /url: /title/82gd-miss-not-so-sidekick
+                  - generic [ref=e795]:
+                    - button "Upvote" [ref=e796] [cursor=pointer]:
+                      - img [ref=e797]
+                    - generic [ref=e799]: "24"
+                    - button "Downvote" [ref=e800] [cursor=pointer]:
+                      - img [ref=e801]
+            - button "Add recommendation" [ref=e803] [cursor=pointer]:
+              - img [ref=e804]
+              - generic [ref=e805]: Add recommendation
+    - contentinfo [ref=e806]:
+      - generic [ref=e807]:
+        - generic [ref=e808]:
+          - link "Comix home" [ref=e809] [cursor=pointer]:
+            - /url: /
+            - img [ref=e810]
+            - img [ref=e812]
+          - paragraph [ref=e814]: Manga and webtoons made simple — clean reader, fastest updates, always current.
+        - navigation [ref=e815]:
+          - generic [ref=e816]:
+            - heading "Discover" [level=4] [ref=e817]
+            - link "Trending Webtoon" [ref=e818] [cursor=pointer]:
+              - /url: /browse?sort=views_7d%3Adesc&types=manhwa%2Cmanhua
+            - link "Trending Manga" [ref=e819] [cursor=pointer]:
+              - /url: /browse?sort=views_7d%3Adesc&types=manga
+            - link "Browse all" [ref=e820] [cursor=pointer]:
+              - /url: /browse
+          - generic [ref=e821]:
+            - heading "Community" [level=4] [ref=e822]
+            - link "Upload Request" [ref=e823] [cursor=pointer]:
+              - /url: /upload-request
+            - link "Upload Rules" [ref=e824] [cursor=pointer]:
+              - /url: /upload-rules
+            - link "Unofficial Discord" [ref=e825] [cursor=pointer]:
+              - /url: https://discord.gg/at5d9rkfUy
+          - generic [ref=e826]:
+            - heading "Comix" [level=4] [ref=e827]
+            - link "Contact Us" [ref=e828] [cursor=pointer]:
+              - /url: /contact
+            - link "Install PWA" [ref=e829] [cursor=pointer]:
+              - /url: /install-pwa
+            - link "Credits" [ref=e830] [cursor=pointer]:
+              - /url: /credits
+      - generic [ref=e832]:
+        - paragraph [ref=e833]: © 2026 Comix
+        - paragraph [ref=e834]:
+          - text: Made with
+          - img [ref=e835]
+          - generic [ref=e837]: "&"
+          - img [ref=e838]
+          - text: for Manga Readers
+  - generic:
+    - status

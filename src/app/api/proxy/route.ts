@@ -62,12 +62,21 @@ export async function GET(request: Request) {
   try {
     const fetchHeaders: HeadersInit = {
       'User-Agent': PROXY_UA,
-      'Accept': 'application/json, text/html, image/avif, image/webp, image/apng, image/svg+xml, image/*, */*;q=0.8',
+      'Accept': 'application/json, text/html, image/avif, image/webp, image/apng, image/svg+xml, image/*;q=0.8, */*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-site',
     };
 
     if (referer) {
       fetchHeaders['Referer'] = referer;
+    } else if (url.includes('comix.to')) {
+      fetchHeaders['Referer'] = 'https://comix.to/';
+      fetchHeaders['Origin'] = 'https://comix.to';
+    } else if (url.includes('comick')) {
+      fetchHeaders['Referer'] = 'https://comick.io/';
+      fetchHeaders['Origin'] = 'https://comick.io';
     }
 
     const upstream = await fetch(url, {

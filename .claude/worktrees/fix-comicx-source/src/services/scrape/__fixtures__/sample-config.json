@@ -1,0 +1,14 @@
+{
+  "name": "ExampleManga",
+  "baseUrl": "https://example.com",
+  "mangaPage": {
+    "title": "h1.manga-title",
+    "cover": "img.cover",
+    "chapterList": "li.chapter",
+    "chapterTitle": "a",
+    "chapterUrl": "a"
+  },
+  "chapterPage": {
+    "images": "img.page"
+  }
+}

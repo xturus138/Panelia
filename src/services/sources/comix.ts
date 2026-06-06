@@ -41,14 +41,18 @@ interface ComixPaginated<T> {
 export class ComixProvider implements SourceProvider {
   id = 'comix';
   name = 'Comix';
+  private readonly FETCH_LIMIT = 30;
 
   private async fetchJson<T>(url: string): Promise<T> {
-    const response = await fetch(`${PROXY_PREFIX}${encodeURIComponent(url)}`);
+    const referer = encodeURIComponent('https://comix.to/');
+    const response = await fetch(`${PROXY_PREFIX}${encodeURIComponent(url)}&referer=${referer}`);
     if (!response.ok) {
       let errMsg = `Comix API error: ${response.status}`;
       try {
         const body = await response.json();
         if (body.message) errMsg += ` (${body.message})`;
+        else if (body.detail) errMsg += ` (${body.detail})`;
+        else if (body.error) errMsg += ` (${body.error})`;
       } catch {
         // ignore parse errors
       }
@@ -57,23 +61,48 @@ export class ComixProvider implements SourceProvider {
     return response.json();
   }
 
+  private async fetchHtml(url: string): Promise<string> {
+    const referer = encodeURIComponent('https://comix.to/');
+    const response = await fetch(`${PROXY_PREFIX}${encodeURIComponent(url)}&referer=${referer}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch page: ${response.status}`);
+    }
+    return response.text();
+  }
+
+  private extractTokenFromHtml(html: string): string | null {
+    // Try to find the token in script tags or as a generated value
+    // The token pattern is like: 6DV7EOsbCciMH_BgJDdOp7wtJfg
+    const tokenMatch = html.match(/["']([A-Za-z0-9_-]{20,40})["']/g);
+    if (tokenMatch) {
+      // Look for the specific token format used in API calls
+      for (const match of tokenMatch) {
+        const token = match.replace(/["']/g, '');
+        if (token.length >= 20 && token.length <= 40 && /^[A-Za-z0-9_-]+$/.test(token)) {
+          return token;
+        }
+      }
+    }
+    return null;
+  }
+
   async getPopular(page: number = 1): Promise<Manga[]> {
     const data = await this.fetchJson<ComixResponse<ComixPaginated<ComixManga>>>(
-      `${COMIX_API}/manga?page=${page}&limit=28&order[views_7d]=desc&content_rating=suggestive&types[]=manhwa&types[]=manhua`
+      `${COMIX_API}/manga?page=${page}&limit=${this.FETCH_LIMIT}&order[views_7d]=desc&content_rating=suggestive&types[]=manhwa&types[]=manhua`
     );
     return this.mapMangaList(data.result?.items || []);
   }
 
   async getLatest(page: number = 1): Promise<Manga[]> {
     const data = await this.fetchJson<ComixResponse<ComixPaginated<ComixManga>>>(
-      `${COMIX_API}/manga?page=${page}&limit=28&order[chapter_updated_at]=desc`
+      `${COMIX_API}/manga?page=${page}&limit=${this.FETCH_LIMIT}&order[chapter_updated_at]=desc`
     );
     return this.mapMangaList(data.result.items);
   }
 
   async search(query: string, page: number = 1): Promise<Manga[]> {
     const data = await this.fetchJson<ComixResponse<ComixPaginated<ComixManga>>>(
-      `${COMIX_API}/manga?page=${page}&limit=28&q=${encodeURIComponent(query)}`
+      `${COMIX_API}/manga?page=${page}&limit=${this.FETCH_LIMIT}&q=${encodeURIComponent(query)}`
     );
     return this.mapMangaList(data.result?.items || []);
   }
@@ -84,25 +113,35 @@ export class ComixProvider implements SourceProvider {
   }
 
   async getChapters(mangaId: string): Promise<Chapter[]> {
-    const data = await this.fetchJson<ComixResponse<ComixChapter[] | ComixPaginated<ComixChapter>>>(
-      `${COMIX_API}/manga/${mangaId}/chapters?page=1&limit=500`
-    );
+    // Comix.to API requires a Cloudflare-generated token for chapter endpoints
+    // This token is generated client-side and cannot be easily replicated server-side
+    // As a workaround, we try to fetch chapters but may fail with 403
 
-    const items = Array.isArray(data.result) ? data.result : data.result.items;
+    try {
+      const data = await this.fetchJson<ComixResponse<ComixChapter[] | ComixPaginated<ComixChapter>>>(
+        `${COMIX_API}/manga/${mangaId}/chapters?page=1&limit=100`
+      );
 
-    return items.map((ch) => ({
-      id: ch.hid,
-      mangaId,
-      chapterNumber: parseFloat(ch.chapter) || 0,
-      title: ch.title || `Chapter ${ch.chapter}`,
-      scanlator: 'Comix',
-      releaseDate: ch.updated_at,
-      pageCount: 0,
-      read: false,
-      lastReadPage: 0,
-      status: 'unread' as const,
-      url: `https://comix.to/title/${mangaId}/${ch.hid}`,
-    }));
+      const items = Array.isArray(data.result) ? data.result : data.result.items;
+
+      return items.map((ch) => ({
+        id: ch.hid,
+        mangaId,
+        chapterNumber: parseFloat(ch.chapter) || 0,
+        title: ch.title || `Chapter ${ch.chapter}`,
+        scanlator: 'Comix',
+        releaseDate: ch.updated_at,
+        pageCount: 0,
+        read: false,
+        lastReadPage: 0,
+        status: 'unread' as const,
+        url: `https://comix.to/title/${mangaId}/${ch.hid}`,
+      }));
+    } catch (err) {
+      // Comix API returns 403 for chapter endpoints without proper token
+      // Throw error with clear message for UI to handle
+      throw new Error('COMIX_CHAPTERS_UNAVAILABLE');
+    }
   }
 
   async getPages(chapterId: string): Promise<Page[]> {

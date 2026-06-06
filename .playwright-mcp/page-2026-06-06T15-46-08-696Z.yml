@@ -1,0 +1,133 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Comix home" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e6]
+          - img [ref=e8]
+        - generic [ref=e11]:
+          - img [ref=e12]
+          - textbox "Search any title..." [ref=e15]
+          - link "Browse" [ref=e16] [cursor=pointer]:
+            - /url: /browse
+        - navigation [ref=e17]:
+          - button "Settings" [ref=e19] [cursor=pointer]:
+            - img [ref=e20]
+          - button "Menu" [ref=e24] [cursor=pointer]:
+            - img [ref=e25]
+          - button "Log in" [ref=e26] [cursor=pointer]
+    - main [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - img [ref=e31]
+            - searchbox "Search…" [ref=e34]
+          - button "ADVANCED FILTERS" [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+            - text: ADVANCED FILTERS
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - generic [ref=e39]: SORT BY
+            - button "Latest update" [ref=e40] [cursor=pointer]:
+              - generic [ref=e41]: Latest update
+              - img [ref=e42]
+          - generic [ref=e44]:
+            - generic [ref=e45]: CONTENT RATING
+            - button "Suggestive" [ref=e46] [cursor=pointer]:
+              - generic [ref=e47]: Suggestive
+              - img [ref=e48]
+          - generic [ref=e50]:
+            - generic [ref=e51]: TYPES
+            - button "Any" [ref=e52] [cursor=pointer]:
+              - generic [ref=e53]: Any
+              - img [ref=e54]
+          - generic [ref=e56]:
+            - generic [ref=e57]: GENRES
+            - button "Any" [ref=e58] [cursor=pointer]:
+              - generic [ref=e59]: Any
+              - img [ref=e60]
+          - generic [ref=e62]:
+            - generic [ref=e63]: DEMOGRAPHIC
+            - button "Any" [ref=e64] [cursor=pointer]:
+              - generic [ref=e65]: Any
+              - img [ref=e66]
+          - generic [ref=e68]:
+            - generic [ref=e69]: RELEASE STATUS
+            - button "Any" [ref=e70] [cursor=pointer]:
+              - generic [ref=e71]: Any
+              - img [ref=e72]
+          - generic [ref=e74]:
+            - generic [ref=e75]: MINIMUM CHAPTER
+            - spinbutton [ref=e76]
+          - generic [ref=e77]:
+            - generic [ref=e78]: RELEASE YEAR
+            - generic [ref=e79]:
+              - spinbutton [ref=e80]
+              - img [ref=e82]
+              - spinbutton [ref=e83]
+          - generic [ref=e84]:
+            - generic [ref=e85]: AUTHORS
+            - button "Any" [ref=e86] [cursor=pointer]:
+              - generic [ref=e87]: Any
+              - img [ref=e88]
+          - generic [ref=e90]:
+            - generic [ref=e91]: ARTISTS
+            - button "Any" [ref=e92] [cursor=pointer]:
+              - generic [ref=e93]: Any
+              - img [ref=e94]
+          - button "RESET FILTERS" [ref=e96] [cursor=pointer]
+          - button "I'M FEELING LUCKY" [ref=e97] [cursor=pointer]
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - strong [ref=e100]: "0"
+            - text: items
+          - group "View mode" [ref=e101]:
+            - button "List view" [pressed] [ref=e102] [cursor=pointer]:
+              - img [ref=e103]
+            - button "Grid view" [ref=e104] [cursor=pointer]:
+              - img [ref=e105]
+        - generic [ref=e111]: Loading…
+    - contentinfo [ref=e112]:
+      - generic [ref=e113]:
+        - generic [ref=e114]:
+          - link "Comix home" [ref=e115] [cursor=pointer]:
+            - /url: /
+            - img [ref=e116]
+            - img [ref=e118]
+          - paragraph [ref=e120]: Manga and webtoons made simple — clean reader, fastest updates, always current.
+        - navigation [ref=e121]:
+          - generic [ref=e122]:
+            - heading "Discover" [level=4] [ref=e123]
+            - link "Trending Webtoon" [ref=e124] [cursor=pointer]:
+              - /url: /browse?sort=views_7d%3Adesc&types=manhwa%2Cmanhua
+            - link "Trending Manga" [ref=e125] [cursor=pointer]:
+              - /url: /browse?sort=views_7d%3Adesc&types=manga
+            - link "Browse all" [ref=e126] [cursor=pointer]:
+              - /url: /browse
+          - generic [ref=e127]:
+            - heading "Community" [level=4] [ref=e128]
+            - link "Upload Request" [ref=e129] [cursor=pointer]:
+              - /url: /upload-request
+            - link "Upload Rules" [ref=e130] [cursor=pointer]:
+              - /url: /upload-rules
+            - link "Unofficial Discord" [ref=e131] [cursor=pointer]:
+              - /url: https://discord.gg/at5d9rkfUy
+          - generic [ref=e132]:
+            - heading "Comix" [level=4] [ref=e133]
+            - link "Contact Us" [ref=e134] [cursor=pointer]:
+              - /url: /contact
+            - link "Install PWA" [ref=e135] [cursor=pointer]:
+              - /url: /install-pwa
+            - link "Credits" [ref=e136] [cursor=pointer]:
+              - /url: /credits
+      - generic [ref=e138]:
+        - paragraph [ref=e139]: © 2026 Comix
+        - paragraph [ref=e140]:
+          - text: Made with
+          - img [ref=e141]
+          - generic [ref=e143]: "&"
+          - img [ref=e144]
+          - text: for Manga Readers
+  - generic:
+    - status

@@ -1,0 +1,65 @@
+{
+  "local-user": {
+    "updates": [
+      {
+        "timestamp": "2026-06-06T11:10:28.451Z",
+        "type": "chapter_status_update",
+        "data": {
+          "chapterId": "scrape:preset-komiku:ch:gcn1ff",
+          "mangaId": "scrape:preset-komiku:6vjx18",
+          "status": "viewed",
+          "page": 0,
+          "timestamp": "2026-06-06T11:10:27.833Z"
+        }
+      },
+      {
+        "timestamp": "2026-06-06T11:10:29.029Z",
+        "type": "chapter_status_update",
+        "data": {
+          "chapterId": "scrape:preset-komiku:ch:gcn1ff",
+          "mangaId": "scrape:preset-komiku:6vjx18",
+          "status": "viewed",
+          "page": 0,
+          "timestamp": "2026-06-06T11:10:28.665Z"
+        }
+      }
+    ]
+  },
+  "Z4nCzMW2oRc4XlEFcymIcOiH4Dz2": {
+    "updates": [
+      {
+        "timestamp": "2026-06-06T12:20:54.522Z",
+        "type": "chapter_status_update",
+        "data": {
+          "chapterId": "scrape:preset-komiku:ch:atnj3",
+          "mangaId": "scrape:preset-komiku:9drf7a",
+          "status": "completed",
+          "page": 0,
+          "timestamp": "2026-06-06T12:20:54.212Z"
+        }
+      },
+      {
+        "timestamp": "2026-06-06T12:39:11.868Z",
+        "type": "chapter_status_update",
+        "data": {
+          "chapterId": "scrape:preset-komiku:ch:smg5hf",
+          "mangaId": "scrape:preset-komiku:70m0oc",
+          "status": "viewed",
+          "page": 0,
+          "timestamp": "2026-06-06T12:39:11.624Z"
+        }
+      },
+      {
+        "timestamp": "2026-06-06T12:39:12.593Z",
+        "type": "chapter_status_update",
+        "data": {
+          "chapterId": "scrape:preset-komiku:ch:smg5hf",
+          "mangaId": "scrape:preset-komiku:70m0oc",
+          "status": "viewed",
+          "page": 0,
+          "timestamp": "2026-06-06T12:39:12.467Z"
+        }
+      }
+    ]
+  }
+}

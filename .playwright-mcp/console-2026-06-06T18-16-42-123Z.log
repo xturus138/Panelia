@@ -1,0 +1,8 @@
+[    1455ms] [ERROR] Failed to load resource: net::ERR_HTTP2_PROTOCOL_ERROR @ https://api.comick.app/favicon.ico:0
+[    6526ms] [WARNING] Manifest: property 'start_url' ignored, should be same origin as document. @ https://cdn-proxy.globalcontentcloud.com/847/dist/manifest.2236ba1b.json:0
+[    7407ms] SyntaxError: Failed to execute 'insertBefore' on 'Node': Unexpected token '&'
+    at t.activateScript (https://ox138.com/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js:1:11855)
+    at https://ox138.com/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js:1:11052
+    at t.run (https://ox138.com/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js:1:11259)
+    at https://ox138.com/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js:1:2907
+    at https://ox138.com/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js:1:8117

@@ -34,10 +34,6 @@ interface ComickPages {
 }
 
 export class ComickProvider implements SourceProvider {
-  readonly id = 'comick';
-  readonly name = 'Comick';
-  private readonly FETCH_LIMIT = 30; // Minimum 10, set to 30 for better UX
-
   private async fetchJson<T>(url: string): Promise<T> {
     const response = await fetch(url);
     if (!response.ok) {
@@ -55,25 +51,28 @@ export class ComickProvider implements SourceProvider {
   }
 
   async getPopular(page: number = 0): Promise<Manga[]> {
-    const offset = page * this.FETCH_LIMIT
+    const limit = 20
+    const offset = page * limit
     const data = await this.fetchJson<ComickManga[]>(
-      `${PROXY_PREFIX}${encodeURIComponent(`${COMICK_API}/top?comic_types=manga&page=${Math.floor(offset / this.FETCH_LIMIT) + 1}&limit=${this.FETCH_LIMIT}`)}`
+      `${PROXY_PREFIX}${encodeURIComponent(`${COMICK_API}/top?comic_types=manga&page=${Math.floor(offset / limit) + 1}&limit=${limit}`)}`
     )
     return this.mapMangaList(data)
   }
 
   async getLatest(page: number = 0): Promise<Manga[]> {
-    const offset = page * this.FETCH_LIMIT
+    const limit = 20
+    const offset = page * limit
     const data = await this.fetchJson<ComickSearchResult[]>(
-      `${PROXY_PREFIX}${encodeURIComponent(`${COMICK_API}/search/?q=&page=${Math.floor(offset / this.FETCH_LIMIT) + 1}&limit=${this.FETCH_LIMIT}&st=s`)}`
+      `${PROXY_PREFIX}${encodeURIComponent(`${COMICK_API}/search/?q=&page=${Math.floor(offset / limit) + 1}&limit=${limit}&st=s`)}`
     )
     return this.fetchMangaDetails(data)
   }
 
   async search(query: string, page: number = 0): Promise<Manga[]> {
-    const offset = page * this.FETCH_LIMIT
+    const limit = 20
+    const offset = page * limit
     const data = await this.fetchJson<ComickSearchResult[]>(
-      `${PROXY_PREFIX}${encodeURIComponent(`${COMICK_API}/v1.0/search/?q=${encodeURIComponent(query)}&page=${Math.floor(offset / this.FETCH_LIMIT) + 1}&limit=${this.FETCH_LIMIT}`)}`
+      `${PROXY_PREFIX}${encodeURIComponent(`${COMICK_API}/v1.0/search/?q=${encodeURIComponent(query)}&page=${Math.floor(offset / limit) + 1}&limit=${limit}`)}`
     )
     return this.fetchMangaDetails(data)
   }
