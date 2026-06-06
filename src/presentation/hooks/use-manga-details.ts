@@ -3,10 +3,10 @@ import { useFirestoreCollection } from '~/hooks/useFirestoreQuery';
 import { getDoc, doc, collection, getDocs, query, where } from '~/infrastructure/db/db-gateway';
 import { db as firestore } from '~/lib/firebase';
 import { isInLibrary, toggleInLibrary } from '~/infrastructure/db/library';
-import { sourceRegistry } from '~/infrastructure/sources';
+import { sourceGateway } from '~/infrastructure/sources';
 import { statusService } from '~/infrastructure/services';
 import { useReaderStore } from '~/presentation/stores';
-import { setScrapeSession } from '~/services/scrape/sessionStore';
+import { getScrapeSession } from '~/services/scrape/sessionStore';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
 import type { Chapter, Manga, ReadStatus, LibraryEntry } from '~/domain/types';
 import { useAuth } from '~/lib/auth-context';
@@ -67,133 +67,15 @@ export function useMangaDetailsViewModel(id: string) {
 
   useEffect(() => {
     const parts = id.split(':');
-    const isScrape = parts[0] === 'scrape';
-    const sourceId = isScrape ? `${parts[0]}:${parts[1]}` : parts[0];
+    // Manga ID format: "scrape:{sourceId}:{slug}" or "{sourceId}:{id}"
+    const sourceId = parts[0] === 'scrape' ? parts[1] : parts[0];
+    const mangaId = parts.slice(1).join(':');
 
     const load = async () => {
       setLoading(true);
       try {
-        if (sourceId.startsWith('scrape')) {
-          if (!uid) {
-            setManga(null);
-            setChapters([]);
-            setInLib(false);
-            return;
-          }
-          const dbMangaSnap = await getDoc(doc(firestore, 'users', uid, 'manga', id));
-          const chaptersSnap = await getDocs(query(collection(firestore, 'users', uid, 'chapters'), where('mangaId', '==', id)));
-          const dbManga = dbMangaSnap.exists() ? dbMangaSnap.data() as Manga : null;
-          const dbChapters = chaptersSnap.docs.map((d) => d.data() as Chapter);
-          const inLibrary = await isInLibrary(uid, id);
-
-          if (dbManga) {
-            setManga(dbManga as Manga);
-            setChapters(dbChapters.sort((a, b) => b.chapterNumber - a.chapterNumber));
-            setInLib(inLibrary);
-            return;
-          }
-
-          const scrapeKey = parts[1];
-          let adapter: ScrapeAdapter | null = null;
-          let baseUrl = '';
-
-          const provider = sourceRegistry.getOrRehydrate(sourceId);
-          if (provider instanceof ScrapeAdapter) {
-            adapter = provider;
-            baseUrl = adapter['sourceUrl'];
-          } else {
-            const savedSourceSnap = await getDoc(doc(firestore, 'users', uid, 'scrapeSources', scrapeKey));
-            if (savedSourceSnap.exists()) {
-              const savedSource = savedSourceSnap.data() as any;
-              sourceRegistry.registerScrapeSource(savedSource.id, savedSource.config, savedSource.baseUrl);
-              const reg = sourceRegistry.get(sourceId);
-              if (reg instanceof ScrapeAdapter) {
-                adapter = reg;
-                baseUrl = savedSource.baseUrl;
-              }
-            }
-          }
-
-          if (!adapter) {
-            const { getPreset } = await import('~/services/scrape/presets');
-            const preset = getPreset(scrapeKey.replace('preset-', ''));
-            if (preset) {
-              adapter = new ScrapeAdapter(scrapeKey, preset.config, preset.baseUrl);
-              baseUrl = preset.baseUrl;
-            }
-          }
-          if (!adapter) throw new Error('Tidak dapat menemukan konfigurasi sumber manga');
-
-          const mangaUrlSlug = parts.slice(2).join(':');
-          if (!mangaUrlSlug) throw new Error('ID manga tidak lengkap');
-
-          const liveUrl = `${baseUrl.replace(/\/+$/, '')}/manga/${mangaUrlSlug}/`;
-          const res = await fetch(`/api/proxy?url=${encodeURIComponent(liveUrl)}`);
-          if (!res.ok) throw new Error(`Gagal mengambil manga: HTTP ${res.status}`);
-          const html = await res.text();
-
-          const processedHtml = html
-            .replace(/<head>/i, `<head><base href="${liveUrl}" />`)
-            .replace(/\sdata-(?:src|lazy-src|original)\s*=\s*(['"])(.*?)\1/gi,
-              (_, quote: string, val: string) => ` src=${quote}${val}${quote} data-processed="true"`);
-
-          const parsed = adapter.parseMangaPage(processedHtml);
-          const validatedCover = parsed.coverUrl ? await validateCoverUrl(parsed.coverUrl) : '';
-
-          const chapterUrls: Record<string, string> = {};
-          for (const ch of parsed.chapters) {
-            chapterUrls[ch.id] = ch.url;
-          }
-          setScrapeSession(
-            scrapeKey,
-            adapter.config,
-            baseUrl,
-            chapterUrls,
-            parsed.id,
-            parsed.title,
-            validatedCover,
-            liveUrl,
-            parsed.chapters.map((ch) => ({ id: ch.id, title: ch.title, chapterNumber: ch.chapterNumber }))
-          );
-
-          const mangaFromParse: Manga = {
-            id: parsed.id,
-            sourceId: 'scrape',
-            title: parsed.title,
-            coverUrl: validatedCover,
-            author: parsed.author,
-            artist: parsed.artist,
-            status: parsed.status,
-            description: parsed.description,
-            genres: parsed.genres,
-            tags: parsed.tags,
-            url: liveUrl,
-          };
-          setManga(mangaFromParse);
-          setChapters(
-            parsed.chapters
-              .sort((a, b) => b.chapterNumber - a.chapterNumber)
-              .map((ch) => ({
-                id: ch.id,
-                mangaId: parsed.id,
-                chapterNumber: ch.chapterNumber,
-                title: ch.title,
-                scanlator: ch.scanlator || '',
-                releaseDate: ch.releaseDate || '',
-                pageCount: ch.pageCount || 0,
-                read: false,
-                lastReadPage: 0,
-                url: ch.url,
-                status: 'unread' as const,
-              }))
-          );
-          setInLib(false);
-          return;
-        }
-
-        const mangaId = parts.slice(1).join(':');
-        const provider = sourceRegistry.getOrRehydrate(sourceId);
-        if (!provider || !mangaId) {
+        const provider = sourceGateway.getProvider(sourceId);
+        if (!provider) {
           setManga(null);
           setChapters([]);
           setInLib(false);
@@ -207,13 +89,80 @@ export function useMangaDetailsViewModel(id: string) {
           return;
         }
 
+        const dbMangaSnap = await getDoc(doc(firestore, 'users', uid, 'manga', id));
+        const dbChaptersSnap = await getDocs(
+          query(collection(firestore, 'users', uid, 'chapters'), where('mangaId', '==', id))
+        );
+        const dbManga = dbMangaSnap.exists() ? (dbMangaSnap.data() as Manga) : null;
+        const dbChapters = dbChaptersSnap.docs.map((d) => d.data() as Chapter);
+        const inLibrary = await isInLibrary(uid, id);
+
+        if (provider instanceof ScrapeAdapter) {
+          if (dbManga) {
+            setManga(dbManga);
+            setChapters(dbChapters.sort((a, b) => b.chapterNumber - a.chapterNumber));
+            setInLib(inLibrary);
+            return;
+          }
+
+          const session = getScrapeSession(sourceId);
+          if (!session) {
+            setManga(null);
+            setChapters([]);
+            setInLib(false);
+            return;
+          }
+
+          setManga({
+            id,
+            sourceId,
+            title: session.mangaTitle,
+            coverUrl: session.mangaCoverUrl,
+            author: '',
+            artist: '',
+            status: 'unknown',
+            description: '',
+            genres: [],
+            tags: [],
+            url: session.sourceUrl,
+          });
+          setChapters(
+            session.chapters
+              .sort((a, b) => b.chapterNumber - a.chapterNumber)
+              .map((ch) => ({
+                id: ch.id,
+                mangaId: id,
+                chapterNumber: ch.chapterNumber,
+                title: ch.title,
+                scanlator: '',
+                releaseDate: '',
+                pageCount: 0,
+                read: false,
+                lastReadPage: 0,
+                url: session.chapterUrls[ch.id] || '',
+                status: 'unread' as const,
+              }))
+          );
+          setInLib(false);
+          return;
+        }
+
+        if (!mangaId) {
+          setManga(null);
+          setChapters([]);
+          setInLib(false);
+          return;
+        }
+
         const [m, c, l] = await Promise.all([
           provider.getMangaDetails(mangaId),
           provider.getChapters(mangaId),
           isInLibrary(uid, id),
         ]);
 
-        const localChaptersSnap = await getDocs(query(collection(firestore, 'users', uid, 'chapters'), where('mangaId', '==', id)));
+        const localChaptersSnap = await getDocs(
+          query(collection(firestore, 'users', uid, 'chapters'), where('mangaId', '==', id))
+        );
         const localChapters = localChaptersSnap.docs.map((d) => d.data() as Chapter);
         const localMap = new Map(localChapters.map((chapter) => [chapter.id, chapter]));
 
@@ -232,7 +181,7 @@ export function useMangaDetailsViewModel(id: string) {
                 viewedAt: local?.viewedAt,
                 completedAt: local?.completedAt,
               };
-            }),
+            })
         );
         setInLib(l);
       } finally {
@@ -248,20 +197,25 @@ export function useMangaDetailsViewModel(id: string) {
     if (!uid) return;
     const next = await toggleInLibrary(uid, manga, chapters);
     setInLib(next);
-  }, [manga, chapters]);
+  }, [manga, chapters, uid]);
 
-  const toggleChapterStatus = useCallback(async (chapterId: string, nextStatus: ReadStatus) => {
-    if (!manga) return;
-    setLoadingChapterId(chapterId);
-    if (!uid) return;
-    await statusService.markChapterStatus(uid, chapterId, id, nextStatus, 0);
-    const updatedSnap = await getDoc(doc(firestore, 'users', uid, 'chapters', chapterId));
-    const updated = updatedSnap.exists() ? updatedSnap.data() as Chapter : null;
-    if (updated) {
-      setChapters((prev) => prev.map((chapter) => (chapter.id === chapterId ? (updated as Chapter) : chapter)));
-    }
-    setLoadingChapterId(null);
-  }, [id, manga]);
+  const toggleChapterStatus = useCallback(
+    async (chapterId: string, nextStatus: ReadStatus) => {
+      if (!manga) return;
+      setLoadingChapterId(chapterId);
+      if (!uid) return;
+      await statusService.markChapterStatus(uid, chapterId, id, nextStatus, 0);
+      const updatedSnap = await getDoc(doc(firestore, 'users', uid, 'chapters', chapterId));
+      const updated = updatedSnap.exists() ? (updatedSnap.data() as Chapter) : null;
+      if (updated) {
+        setChapters((prev) =>
+          prev.map((chapter) => (chapter.id === chapterId ? (updated as Chapter) : chapter))
+        );
+      }
+      setLoadingChapterId(null);
+    },
+    [id, manga, uid]
+  );
 
   const readCounts = useMemo(() => {
     const viewed = chapters.filter((chapter) => chapter.status !== 'unread').length;

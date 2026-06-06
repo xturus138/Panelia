@@ -66,7 +66,7 @@ export class ScrapeAdapter implements SourceProvider {
 
     return {
       id: mangaId,
-      sourceId: 'scrape',
+      sourceId: this.id,
       title,
       coverUrl,
       author: '',
@@ -212,7 +212,7 @@ export class ScrapeAdapter implements SourceProvider {
 
   private buildPageUrl(template: string, page: number, query?: string): string {
     let url = template;
-    if (this.id === 'preset-komiku' && template.includes('/manga/{page}?')) {
+    if (template.includes('/manga/{page}?')) {
       url = template.replace('/{page}', page > 1 ? `/page/${page}/` : '/');
     } else {
       url = template.replace('{page}', String(page));

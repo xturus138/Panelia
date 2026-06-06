@@ -39,12 +39,13 @@ describe('domain contract entrypoints', () => {
       readingDirection: 'ltr',
       pageFitMode: 'fit-width',
       libraryViewMode: 'grid',
-      brightness: 100,
       languageFilter: 'all',
       showNsfw: false,
     };
 
     const providerShape = {
+      id: 'test-provider',
+      name: 'Test Provider',
       getPopular: async (_page: number) => [manga],
       getLatest: async (_page: number) => [manga],
       search: async (_query: string, _page: number) => [manga],
@@ -91,7 +92,6 @@ describe('domain contract entrypoints', () => {
       readingDirection: 'rtl',
       pageFitMode: 'fit-height',
       libraryViewMode: 'list',
-      brightness: 100,
       languageFilter: 'all',
       showNsfw: false,
     };

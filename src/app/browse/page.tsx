@@ -21,6 +21,8 @@ import { setScrapeSession } from "~/services/scrape/sessionStore";
 import type { SiteConfig, ParsedMangaPage, SearchResult, ScrapeSource } from "~/services/scrape/types";
 import type { Manga } from "~/types";
 import { useToast } from "~/hooks/useToast";
+import { sourceGateway } from "~/infrastructure/sources";
+
 
 type ViewMode = "sources" | "search" | "detail";
 
@@ -320,7 +322,7 @@ export default function BrowsePage() {
         return;
       }
 
-      const { sourceRegistry } = await import("~/infrastructure/sources");
+      const { sourceGateway } = await import("~/infrastructure/sources");
       const { saveScrapeSource } = await import("~/infrastructure/db/scrape-sources");
       const { saveManga } = await import("~/infrastructure/db/manga");
       const { saveChapters } = await import("~/infrastructure/db/chapters");
@@ -344,7 +346,7 @@ export default function BrowsePage() {
       mangaData.coverUrl = validatedCover; // keep in sync
       const mangaRow: Manga = {
         id: mangaData.id,
-        sourceId: "scrape",
+        sourceId: activeSource.id,
         title: mangaData.title,
         coverUrl: validatedCover,
         author: mangaData.author,
@@ -376,8 +378,7 @@ export default function BrowsePage() {
       // Add to library
       await toggleInLibrary(currentUid, mangaRow, chapterRows);
 
-      // Register with sourceRegistry
-      sourceRegistry.registerScrapeSource(activeSource.id, config, currentUrl);
+      // Source already registered as normal module via gateway
 
       setSavedInSession(true);
       loading.dismiss();

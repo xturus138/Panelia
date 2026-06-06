@@ -3,7 +3,7 @@ import { db } from '~/lib/firebase';
 import type { Chapter, Page } from '~/types';
 import { getScrapeSession } from '~/services/scrape/sessionStore';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
-import { sourceRegistry } from '~/infrastructure/sources';
+import { sourceGateway } from '~/infrastructure/sources';
 import { blobStore } from './blob-store';
 import { userScopedCollection, userScopedDoc } from '~/infrastructure/db/user-scope';
 
@@ -17,36 +17,30 @@ export const downloadManager = {
     if (!mangaSnap.exists()) throw new Error('Manga not found in database');
 
     const parts = chapterId.split(':');
-    if (parts[0] !== 'scrape') {
+    const sourceId = parts[0] === 'scrape' ? parts[1] : parts[0];
+    if (!sourceId) {
+      throw new Error('Invalid chapter id');
+    }
+
+    const provider = sourceGateway.getProvider(sourceId);
+    if (!provider || !(provider instanceof ScrapeAdapter)) {
       throw new Error('Only scraped content is supported for download currently');
     }
 
-    const sourceId = parts[1];
     let url = chapter.url;
-    let adapter: ScrapeAdapter | null = null;
-
     const session = getScrapeSession(sourceId);
     if (session) {
       url = url || session.chapterUrls[chapterId];
-      adapter = new ScrapeAdapter(sourceId, session.config, session.baseUrl);
     }
 
-    if (!adapter) {
-      const savedSourceSnap = await getDoc(userScopedDoc(uid, 'scrapeSources', sourceId));
-      if (savedSourceSnap.exists()) {
-        const savedSource = savedSourceSnap.data() as any;
-        adapter = new ScrapeAdapter(sourceId, savedSource.config, savedSource.baseUrl);
-      }
-    }
-
-    if (!adapter || !url) {
-      throw new Error('Source config or chapter URL not found');
+    if (!url) {
+      throw new Error('Chapter URL not found');
     }
 
     const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
     if (!response.ok) throw new Error(`Failed to fetch chapter pages: ${response.status}`);
     const html = await response.text();
-    const scrapedPages = adapter.parseChapterPage(html);
+    const scrapedPages = provider.parseChapterPage(html);
 
     const sourceUrl = new URL(url);
     const refererUrl = `${sourceUrl.protocol}//${sourceUrl.host}/`;

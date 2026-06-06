@@ -1,0 +1,1 @@
+export { komikuModule } from './impl';

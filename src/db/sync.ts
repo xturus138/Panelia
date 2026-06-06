@@ -1,11 +1,9 @@
 import { doc, getDoc, collection, getDocs, query, where, writeBatch, updateDoc } from '~/infrastructure/db/db-gateway';
 import { db } from '~/lib/firebase';
 import type { Chapter } from '~/domain/types';
+import { sourceGateway } from '~/infrastructure/sources';
 import { ScrapeAdapter } from '~/services/scrape/scrapeAdapter';
-import type { SiteConfig, ScrapeSource } from '~/services/scrape/types';
-import { sourceRegistry } from '~/infrastructure/sources';
 import { getMangaById } from '~/infrastructure/db/manga';
-import { getScrapeSourceById } from '~/infrastructure/db/scrape-sources';
 import { userScopedCollection, userScopedDoc } from '~/infrastructure/db/user-scope';
 
 export async function syncChapters(uid: string, mangaId: string): Promise<number> {
@@ -14,25 +12,21 @@ export async function syncChapters(uid: string, mangaId: string): Promise<number
     throw new Error(`Manga not found: ${mangaId}`);
   }
 
+  const [sourcePrefix, rawMangaId] = manga.id.split(':');
+  if (!sourcePrefix || !rawMangaId) throw new Error(`Invalid manga id: ${mangaId}`);
+
+  const provider = sourceGateway.getProvider(sourcePrefix);
+  if (!provider) throw new Error(`Provider not found for source: ${sourcePrefix}`);
+
   let chapters: Chapter[] = [];
 
-  if (manga.id.startsWith('scrape:')) {
-    const parts = manga.id.split(':');
-    if (parts.length < 3) throw new Error(`Invalid scrape manga id: ${mangaId}`);
-    const sourceKey = parts[1];
-
-    const scrapeSource = await getScrapeSourceById(uid, sourceKey);
-    if (!scrapeSource) throw new Error(`Scrape source not found: ${sourceKey}`);
-
-    const config: SiteConfig = scrapeSource.config;
-    const adapter = new ScrapeAdapter(sourceKey, config, scrapeSource.baseUrl);
-
-    const mangaUrl = manga.url || scrapeSource.baseUrl;
+  if (provider instanceof ScrapeAdapter) {
+    const mangaUrl = manga.url || provider.sourceUrl;
     const response = await fetch(`/api/proxy?url=${encodeURIComponent(mangaUrl)}`);
     if (!response.ok) throw new Error(`Failed to fetch manga page: ${response.status}`);
     const html = await response.text();
 
-    const parsed = adapter.parseMangaPage(html);
+    const parsed = provider.parseMangaPage(html);
     chapters = parsed.chapters.map((ch) => ({
       id: ch.id,
       mangaId: manga.id,
@@ -49,12 +43,6 @@ export async function syncChapters(uid: string, mangaId: string): Promise<number
       completedAt: ch.completedAt,
     }));
   } else {
-    const [sourcePrefix, rawMangaId] = manga.id.split(':');
-    if (!sourcePrefix || !rawMangaId) throw new Error(`Invalid manga id: ${mangaId}`);
-
-    const provider = sourceRegistry.get(sourcePrefix);
-    if (!provider) throw new Error(`Provider not found for source: ${sourcePrefix}`);
-
     const apiChapters = await provider.getChapters(rawMangaId);
     chapters = apiChapters.map((ch) => ({
       id: ch.id,
