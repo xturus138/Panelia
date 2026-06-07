@@ -38,6 +38,7 @@ export class ScrapeAdapter implements SourceProvider {
     const title = this.extractText(root, this.config.mangaPage.title) || 'Untitled';
     const coverSrc = this.extractAttr(root, this.config.mangaPage.cover, 'src') || '';
     const coverUrl = coverSrc ? this.resolveUrl(coverSrc) : '';
+    const upgradedCoverUrl = this.upgradeThumbnailUrl(coverUrl);
 
     const mangaId = this.makeId(this.sourceUrl);
     const chapterNodes = root.querySelectorAll(this.config.mangaPage.chapterList);
@@ -69,7 +70,7 @@ export class ScrapeAdapter implements SourceProvider {
       id: mangaId,
       sourceId: this.id,
       title,
-      coverUrl,
+      coverUrl: upgradedCoverUrl,
       author: '',
       artist: '',
       status: 'unknown',
@@ -135,10 +136,32 @@ export class ScrapeAdapter implements SourceProvider {
     if (!this.config.searchPage) return { results: [], hasMore: false };
     const { urlTemplate, resultItem, resultTitle, resultUrl, resultCover } = this.config.searchPage;
     const selectors: ListingSelectors = { resultItem, resultTitle, resultUrl, resultCover };
-    const url = this.buildPageUrl(urlTemplate, page, query);
-    const results = await this.fetchListingPage(url, selectors);
-    const hasMore = results.length > 0 && page < MAX_LISTING_PAGES;
-    return { results, hasMore };
+
+    const pagesToFetch = this.config.pagesPerRequest || 1;
+    const startPage = (page - 1) * pagesToFetch + 1;
+    const results: SearchResult[] = [];
+
+    const promises = [];
+    for (let i = 0; i < pagesToFetch; i++) {
+      const url = this.buildPageUrl(urlTemplate, startPage + i, query);
+      promises.push(this.fetchListingPage(url, selectors).catch(() => []));
+    }
+
+    const pagesResults = await Promise.all(promises);
+    for (const pr of pagesResults) {
+      results.push(...pr);
+    }
+
+    // Dedupe by URL (same manga may appear on multiple pages)
+    const seen = new Set<string>();
+    const deduped = results.filter((r) => {
+      if (seen.has(r.url)) return false;
+      seen.add(r.url);
+      return true;
+    });
+
+    const hasMore = deduped.length > 0 && page < MAX_LISTING_PAGES;
+    return { results: deduped, hasMore };
   }
 
   /** Fetch all popular results. Pagination is hidden from the UI. */
@@ -156,10 +179,32 @@ export class ScrapeAdapter implements SourceProvider {
     if (!this.config.popularPage) return { results: [], hasMore: false };
     const { urlTemplate, resultItem, resultTitle, resultUrl, resultCover } = this.config.popularPage;
     const selectors: ListingSelectors = { resultItem, resultTitle, resultUrl, resultCover };
-    const url = this.buildPageUrl(urlTemplate, page);
-    const results = await this.fetchListingPage(url, selectors);
-    const hasMore = results.length > 0 && page < MAX_LISTING_PAGES;
-    return { results, hasMore };
+
+    const pagesToFetch = this.config.pagesPerRequest || 1;
+    const startPage = (page - 1) * pagesToFetch + 1;
+    const results: SearchResult[] = [];
+
+    const promises = [];
+    for (let i = 0; i < pagesToFetch; i++) {
+      const url = this.buildPageUrl(urlTemplate, startPage + i);
+      promises.push(this.fetchListingPage(url, selectors).catch(() => []));
+    }
+
+    const pagesResults = await Promise.all(promises);
+    for (const pr of pagesResults) {
+      results.push(...pr);
+    }
+
+    // Dedupe by URL (same manga may appear on multiple pages)
+    const seen = new Set<string>();
+    const deduped = results.filter((r) => {
+      if (seen.has(r.url)) return false;
+      seen.add(r.url);
+      return true;
+    });
+
+    const hasMore = deduped.length > 0 && page < MAX_LISTING_PAGES;
+    return { results: deduped, hasMore };
   }
 
   // ----- SourceProvider implementation (delegates to fetch + parse) -----
@@ -278,10 +323,35 @@ export class ScrapeAdapter implements SourceProvider {
         coverSrc = '';
       }
       const coverUrl = this.resolveUrl(coverSrc);
+      const upgradedCoverUrl = this.upgradeThumbnailUrl(coverUrl);
       const id = `${this.id}:${simpleHash(url)}`;
 
-      return { id, title, url, coverUrl };
+      return { id, title, url, coverUrl: upgradedCoverUrl };
     });
+  }
+
+  /**
+   * Rewrite dead image hosts to working CDN.
+   * Keeps original cropping/dimensions for faster loading.
+   */
+  private upgradeThumbnailUrl(url: string): string {
+    if (!url) return url;
+    try {
+      const parsed = new URL(url);
+      // Rewrite nail.komiku.id/org to the working thumbnail.komiku.id CDN
+      if (parsed.hostname === 'nail.komiku.org' || parsed.hostname === 'nail.komiku.id') {
+        parsed.hostname = 'thumbnail.komiku.id';
+      }
+      // Keep komiku.org images mapped to komiku.id
+      if (parsed.hostname === 'komiku.org') {
+        parsed.hostname = 'komiku.id';
+      }
+      return parsed.toString();
+    } catch {
+      return url
+        .replace(/\bnail\.komiku\.(id|org)\b/g, 'thumbnail.komiku.id')
+        .replace(/\bkomiku\.org\b/g, 'komiku.id');
+    }
   }
 
   /**

@@ -12,6 +12,9 @@ export interface SiteConfig {
   /** Base URL of the site (e.g., "https://mangadex.org") */
   baseUrl: string;
 
+  /** Optional: How many actual pages to fetch for one UI page (default 1) */
+  pagesPerRequest?: number;
+
   /** Optional: how to search the site for manga by name */
   searchPage?: {
     /** URL template with {query} and optional {page} placeholders */

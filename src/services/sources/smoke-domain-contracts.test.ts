@@ -39,8 +39,6 @@ describe('domain contract entrypoints', () => {
       readingDirection: 'ltr',
       pageFitMode: 'fit-width',
       libraryViewMode: 'grid',
-      languageFilter: 'all',
-      showNsfw: false,
     };
 
     const providerShape = {
@@ -92,8 +90,6 @@ describe('domain contract entrypoints', () => {
       readingDirection: 'rtl',
       pageFitMode: 'fit-height',
       libraryViewMode: 'list',
-      languageFilter: 'all',
-      showNsfw: false,
     };
 
     expect(compatManga.title).toBe('Compat Test');

@@ -33,9 +33,11 @@ class SourceRegistry {
   }
 
   registerScrapeSource(id: string, config: SiteConfig, sourceUrl: string): void {
-    const adapter = new ScrapeAdapter(id, config, sourceUrl);
-    this.scrapeAdapters.set(id, adapter);
-    this.providers.set(SCRAPE_PREFIX + id, adapter);
+    // Normalize id: strip 'scrape:' prefix if present, to avoid double-prefixing
+    const normalizedId = id.startsWith(SCRAPE_PREFIX) ? id.slice(SCRAPE_PREFIX.length) : id;
+    const adapter = new ScrapeAdapter(normalizedId, config, sourceUrl);
+    this.scrapeAdapters.set(normalizedId, adapter);
+    this.providers.set(SCRAPE_PREFIX + normalizedId, adapter);
   }
 
   unregisterScrapeSource(id: string): void {
@@ -85,7 +87,7 @@ class SourceRegistry {
     for (const [id, adapter] of this.scrapeAdapters.entries()) {
       providers.push({
         id: SCRAPE_PREFIX + id,
-        name: adapter.id,
+        name: adapter.config.name || adapter.name, // Use config name if available (e.g. "Komiku")
         provider: adapter,
         isScrape: true,
       });

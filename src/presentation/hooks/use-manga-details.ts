@@ -125,11 +125,12 @@ export function useMangaDetailsViewModel(id: string) {
             return;
           }
 
+          const validatedCoverUrl = await validateCoverUrl(session.mangaCoverUrl);
           setManga({
             id,
             sourceId,
             title: session.mangaTitle,
-            coverUrl: session.mangaCoverUrl,
+            coverUrl: validatedCoverUrl,
             author: '',
             artist: '',
             status: 'unknown',

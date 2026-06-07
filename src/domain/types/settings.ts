@@ -4,7 +4,5 @@ export interface AppSettings {
   readingDirection: 'rtl' | 'ltr';
   pageFitMode: 'fit-width' | 'fit-height' | 'fill' | 'original' | 'auto';
   libraryViewMode: 'grid' | 'list';
-  languageFilter: string;
-  showNsfw: boolean;
   lastBackupAt?: string | null;
 }

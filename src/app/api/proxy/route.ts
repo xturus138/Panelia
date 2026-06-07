@@ -71,12 +71,23 @@ export async function GET(request: Request) {
 
     if (referer) {
       fetchHeaders['Referer'] = referer;
+      try {
+        fetchHeaders['Origin'] = new URL(referer).origin;
+      } catch {
+        // ignore invalid referer
+      }
     } else if (url.includes('comix.to')) {
       fetchHeaders['Referer'] = 'https://comix.to/';
       fetchHeaders['Origin'] = 'https://comix.to';
     } else if (url.includes('comick')) {
       fetchHeaders['Referer'] = 'https://comick.io/';
       fetchHeaders['Origin'] = 'https://comick.io';
+    } else if (url.includes('komiku.id') || url.includes('nail.komiku.id') || url.includes('thumbnail.komiku.id')) {
+      fetchHeaders['Referer'] = 'https://komiku.id/';
+      fetchHeaders['Origin'] = 'https://komiku.id';
+    } else if (url.includes('komiku.org') || url.includes('api.komiku.org') || url.includes('nail.komiku.org')) {
+      fetchHeaders['Referer'] = 'https://komiku.org/';
+      fetchHeaders['Origin'] = 'https://komiku.org';
     }
 
     const upstream = await fetch(url, {

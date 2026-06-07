@@ -82,7 +82,7 @@ export default function MangaDetailsPage({ params }: { params: Promise<{ id: str
           src={manga.coverUrl}
           alt={manga.title}
           aspectRatio="none"
-          objectFit="cover"
+          objectFit="contain"
           priority
           className="absolute inset-0 w-full h-full opacity-40"
         />
@@ -102,7 +102,7 @@ export default function MangaDetailsPage({ params }: { params: Promise<{ id: str
             src={manga.coverUrl}
             alt={manga.title}
             aspectRatio="3/4"
-            objectFit="cover"
+            objectFit="contain"
             priority
             className="w-28 h-40 rounded-xl shadow-lg border border-background"
           />

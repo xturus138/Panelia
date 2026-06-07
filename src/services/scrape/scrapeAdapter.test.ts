@@ -32,8 +32,8 @@ describe('ScrapeAdapter', () => {
       const adapter = new ScrapeAdapter('src-1', fixtureConfig, 'https://example.com/manga/one-piece');
       const result = adapter.parseMangaPage(fixtureHtml);
 
-      expect(result.id).toMatch(/^src-1:/);
-      expect(result.chapters[0].id).toMatch(/^src-1:/);
+      expect(result.id).toMatch(/^scrape:src-1:/);
+      expect(result.chapters[0].id).toMatch(/^scrape:src-1:/);
     });
   });
 

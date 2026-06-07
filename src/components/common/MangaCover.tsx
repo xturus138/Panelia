@@ -19,7 +19,7 @@ export function MangaCover({
   alt,
   className,
   aspectRatio = "3/4",
-  objectFit = "cover",
+  objectFit = "contain", // Use contain to avoid cropping images with varying aspect ratios
   loading = "lazy",
   priority = false,
 }: MangaCoverProps) {

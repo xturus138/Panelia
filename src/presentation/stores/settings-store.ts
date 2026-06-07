@@ -15,8 +15,6 @@ export const useSettingsStore = create<SettingsState>()(
       readingDirection: 'ltr',
       pageFitMode: 'fit-width',
       libraryViewMode: 'grid',
-      languageFilter: 'all',
-      showNsfw: false,
       lastBackupAt: null,
       updateSettings: (newSettings) => set((state) => ({ ...state, ...newSettings })),
     }),

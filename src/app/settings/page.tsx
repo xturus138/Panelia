@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useSettingsStore } from '~/presentation/stores'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, Monitor, Book, Globe, Eye, Trash2, ChevronRight, Download, Upload, LogIn, LogOut } from 'lucide-react'
+import { Moon, Sun, Monitor, Book, Trash2, ChevronRight, LogIn, LogOut, Cloud, CloudOff } from 'lucide-react'
 import { db } from '~/lib/firebase'
 import { terminate, clearIndexedDbPersistence } from '~/infrastructure/db/db-gateway'
 import { useToast } from '~/hooks/useToast'
-import { exportBackup, importBackup, validateBackup, fileAdapter } from '~/infrastructure/backup'
+import { exportBackup, importBackup, validateBackup, firebaseAdapter } from '~/infrastructure/backup'
 import { blobStore } from '~/services/downloads/blob-store'
 import { useAuth } from '~/lib/auth-context'
 import Link from 'next/link'
@@ -19,54 +19,15 @@ export default function SettingsPage() {
   const { user, loading: authLoading, signInWithGoogle, logout } = useAuth()
   const isSignedIn = !!user
   const [mounted, setMounted] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [cloudSyncing, setCloudSyncing] = useState(false)
   const [pendingBackup, setPendingBackup] = useState<any>(null)
   const [importMode, setImportMode] = useState<'replace' | 'merge'>('replace')
   const [showImportWarning, setShowImportWarning] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  const handleExport = async () => {
-    setExporting(true)
-    try {
-      const backup = await exportBackup()
-      const filename = `panelia-backup-${new Date().toISOString().split('T')[0]}.json`
-      fileAdapter.downloadBackup(backup, filename)
-      settings.updateSettings({ lastBackupAt: new Date().toISOString() })
-      toast.success('Backup exported')
-    } catch {
-      toast.error('Failed to export backup')
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      const backup = await fileAdapter.uploadBackup(file)
-      const validation = validateBackup(backup)
-      if (!validation.valid) {
-        toast.error('Invalid backup: ' + validation.errors.join(', '))
-        return
-      }
-      setPendingBackup(backup)
-      setShowImportWarning(true)
-    } catch (err) {
-      toast.error('Failed to parse backup file')
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
 
   const confirmImport = async () => {
     if (!pendingBackup) return
@@ -80,6 +41,45 @@ export default function SettingsPage() {
       toast.error('Failed to restore backup: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setImporting(false)
+    }
+  }
+
+  const handleCloudSync = async () => {
+    if (!isSignedIn) {
+      toast.error('Please sign in to sync with cloud')
+      return
+    }
+    setCloudSyncing(true)
+    try {
+      const backup = await exportBackup()
+      await firebaseAdapter.pushBackup(backup, user!.uid)
+      settings.updateSettings({ lastBackupAt: new Date().toISOString() })
+      toast.success('Backup synced to cloud')
+    } catch (err) {
+      toast.error('Failed to sync backup: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setCloudSyncing(false)
+    }
+  }
+
+  const handleCloudRestore = async () => {
+    if (!isSignedIn) {
+      toast.error('Please sign in to restore from cloud')
+      return
+    }
+    setCloudSyncing(true)
+    try {
+      const backup = await firebaseAdapter.pullBackup(user!.uid)
+      if (!backup) {
+        toast.error('No cloud backup found')
+        return
+      }
+      setPendingBackup(backup)
+      setShowImportWarning(true)
+    } catch (err) {
+      toast.error('Failed to load cloud backup: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setCloudSyncing(false)
     }
   }
 
@@ -105,13 +105,6 @@ export default function SettingsPage() {
     { value: 'horizontal-swipe', label: 'Horizontal Swipe' },
   ]
 
-  const languages = [
-    { value: 'all', label: 'All Languages' },
-    { value: 'en', label: 'English' },
-    { value: 'ja', label: 'Japanese' },
-    { value: 'ko', label: 'Korean' },
-    { value: 'zh', label: 'Chinese' },
-  ]
 
   return (
     <div className="px-4 pt-6 pb-4">
@@ -271,61 +264,14 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Language Filter Section */}
-        <section className="bg-card rounded-xl p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
-            <Globe className="w-4 h-4" />
-            Source Filters
-          </h2>
-
-          {/* Language Dropdown */}
-          <div className="mb-4">
-            <label className="text-[13px] text-muted-foreground mb-2 block">Language</label>
-            <select
-              className="w-full p-3 rounded-xl bg-secondary text-secondary-foreground appearance-none cursor-pointer"
-              value={settings.languageFilter}
-              onChange={(e) => settings.updateSettings({ languageFilter: e.target.value })}
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 12px center',
-                backgroundSize: '16px',
-              }}
-            >
-              {languages.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* NSFW Toggle */}
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-3">
-              <Eye className="w-5 h-5 text-muted-foreground" />
-              <span className="text-[14px] font-medium">Show NSFW sources</span>
-            </div>
-            <button
-              onClick={() => settings.updateSettings({ showNsfw: !settings.showNsfw })}
-              className={`w-12 h-7 rounded-full transition-colors relative ${
-                settings.showNsfw ? 'bg-primary' : 'bg-secondary'
-              }`}
-            >
-              <div
-                className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                  settings.showNsfw ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-        </section>
 
 
-        {/* Backup & Restore */}
+        {/* Cloud Backup & Restore */}
         <section className="bg-card rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Backup & Restore
+              <Cloud className="w-4 h-4" />
+              Cloud Backup
             </h2>
             {settings.lastBackupAt && (
               <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
@@ -333,31 +279,29 @@ export default function SettingsPage() {
               </span>
             )}
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex-1 py-3 px-4 rounded-xl bg-secondary text-secondary-foreground font-medium text-[14px] hover:bg-secondary/80 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Upload className="w-4 h-4" />
-              {exporting ? 'Exporting...' : 'Export'}
-            </button>
-            <button
-              onClick={handleImportClick}
-              disabled={importing}
-              className="flex-1 py-3 px-4 rounded-xl bg-secondary text-secondary-foreground font-medium text-[14px] hover:bg-secondary/80 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Download className="w-4 h-4" />
-              {importing ? 'Importing...' : 'Import'}
-            </button>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            className="hidden"
-            onChange={handleImportFile}
-          />
+
+          {isSignedIn ? (
+            <div className="flex gap-2">
+              <button
+                onClick={handleCloudSync}
+                disabled={cloudSyncing}
+                className="flex-1 py-3 px-4 rounded-xl bg-primary text-primary-foreground font-medium text-[14px] hover:bg-primary/90 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Cloud className="w-4 h-4" />
+                {cloudSyncing ? 'Syncing...' : 'Sync Now'}
+              </button>
+              <button
+                onClick={handleCloudRestore}
+                disabled={cloudSyncing}
+                className="flex-1 py-3 px-4 rounded-xl bg-secondary text-secondary-foreground font-medium text-[14px] hover:bg-secondary/80 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <CloudOff className="w-4 h-4" />
+                {cloudSyncing ? 'Loading...' : 'Restore'}
+              </button>
+            </div>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">Sign in to enable cloud backup</p>
+          )}
         </section>
 
         {/* Import Warning Modal */}
@@ -367,7 +311,7 @@ export default function SettingsPage() {
               <h3 className="text-lg font-bold text-foreground mb-2">Restore Backup</h3>
               <p className="text-sm text-muted-foreground mb-6">
                 Are you sure you want to restore this backup?
-                Consider <button onClick={handleExport} className="text-primary font-medium hover:underline">creating a current backup</button> first.
+                Consider <button onClick={handleCloudSync} className="text-primary font-medium hover:underline">creating a current backup</button> first.
               </p>
 
               <div className="space-y-3 mb-6">

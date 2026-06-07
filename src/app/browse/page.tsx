@@ -49,19 +49,28 @@ async function validateCoverUrl(url: string): Promise<string> {
     try {
       origin = new URL(url).origin + "/";
     } catch {
-      // invalid url
       return COVER_FALLBACK;
     }
 
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}&referer=${encodeURIComponent(origin)}`;
-    const res = await fetch(proxyUrl, { method: "HEAD" });
-    if (!res.ok) return COVER_FALLBACK;
+    console.log('[ValidateCover] Checking:', url, 'via proxy');
+    const res = await fetch(proxyUrl, { method: 'HEAD' });
+    console.log('[ValidateCover] Response:', res.status, res.ok);
+    if (!res.ok) {
+      console.log('[ValidateCover] Failed, using fallback');
+      return COVER_FALLBACK;
+    }
 
-    const contentType = res.headers.get("content-type") || "";
-    if (!contentType.startsWith("image/")) return COVER_FALLBACK;
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.startsWith('image/')) {
+      console.log('[ValidateCover] Not an image:', contentType);
+      return COVER_FALLBACK;
+    }
 
+    console.log('[ValidateCover] Valid image:', url);
     return url;
-  } catch {
+  } catch (err) {
+    console.error('[ValidateCover] Error:', err);
     return COVER_FALLBACK;
   }
 }
@@ -101,20 +110,36 @@ export default function BrowsePage() {
 
   // Load sources on mount
   useEffect(() => {
-    const scrapeSources = getBuiltinPresets().map(presetToScrapeSource).map((src: ScrapeSource) => ({
-      id: src.id,
-      name: src.name,
-      baseUrl: src.baseUrl,
-      isScrape: true,
-      scrapeConfig: src.config
-    }));
+    const nativeSources = sourceGateway.list().map((src: SourceProviderEntry) => {
+      const isScrape = Boolean(src.isScrape);
+      const scrapeConfig = isScrape && src.provider instanceof ScrapeAdapter
+        ? src.provider.config
+        : undefined;
+      const baseUrl = isScrape && src.provider instanceof ScrapeAdapter
+        ? src.provider.sourceUrl
+        : undefined;
+      return {
+        id: src.id,
+        name: src.name,
+        baseUrl,
+        isScrape,
+        scrapeConfig,
+        provider: src.provider
+      };
+    });
 
-    const nativeSources = sourceGateway.list().map((src: SourceProviderEntry) => ({
-      id: src.id,
-      name: src.name,
-      isScrape: false,
-      provider: src.provider
-    }));
+    // Add preset sources only if not already registered
+    const registeredIds = new Set(nativeSources.map(s => s.id));
+    const scrapeSources = getBuiltinPresets()
+      .map(presetToScrapeSource)
+      .filter(src => !registeredIds.has(`scrape:${src.id}`))
+      .map((src: ScrapeSource) => ({
+        id: `scrape:${src.id}`,
+        name: src.name,
+        baseUrl: src.baseUrl,
+        isScrape: true,
+        scrapeConfig: src.config
+      }));
 
     setSources([...nativeSources, ...scrapeSources]);
   }, []);
@@ -492,6 +517,8 @@ export default function BrowsePage() {
       const currentUid = auth.currentUser?.uid;
       if (!currentUid) { loading.dismiss(); toast.error('Login required'); return; }
 
+      console.log('[Save] Starting save for:', mangaData.id, mangaData.title);
+
       if (activeSource.isScrape) {
         const { saveScrapeSource } = await import("~/infrastructure/db/scrape-sources");
         let config: SiteConfig;
@@ -511,13 +538,13 @@ export default function BrowsePage() {
           config,
           createdAt: new Date().toISOString(),
         });
-
-        // Register with sourceRegistry for current session
-        sourceRegistry.registerScrapeSource(activeSource.id, config, currentUrl);
+        console.log('[Save] Scrape source saved');
       }
 
       // Save manga to Firestore
+      console.log('[Save] Validating cover URL:', mangaData.coverUrl);
       const validatedCover = await validateCoverUrl(mangaData.coverUrl);
+      console.log('[Save] Validated cover:', validatedCover);
       mangaData.coverUrl = validatedCover; // keep in sync
       const mangaRow: Manga = {
         id: mangaData.id,
@@ -532,7 +559,9 @@ export default function BrowsePage() {
         tags: mangaData.tags,
         url: currentUrl,
       };
+      console.log('[Save] Saving manga:', mangaRow.id);
       await saveManga(currentUid, mangaRow);
+      console.log('[Save] Manga saved');
 
       // Save chapters
       const chapterRows = mangaData.chapters.map((ch) => ({
@@ -548,16 +577,21 @@ export default function BrowsePage() {
         url: ch.url,
         status: 'unread' as const,
       }));
+      console.log('[Save] Saving', chapterRows.length, 'chapters');
       await saveChapters(currentUid, chapterRows);
+      console.log('[Save] Chapters saved');
 
       // Add to library
+      console.log('[Save] Adding to library');
       await toggleInLibrary(currentUid, mangaRow, chapterRows);
+      console.log('[Save] Library entry created');
 
       setSavedInSession(true);
       loading.dismiss();
       toast.success(`Saved "${mangaData.title}" with ${chapterRows.length} chapters!`);
     } catch (err) {
       loading.dismiss();
+      console.error('[Save] Error:', err);
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }, [activeSource, mangaData, currentUrl, configJson]);
@@ -739,10 +773,10 @@ export default function BrowsePage() {
                       className="group text-left bg-card rounded-xl border border-border overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
                     >
                       <MangaCover
-                        src={r.coverUrl}
+                        src={activeSource?.isScrape ? `/api/proxy?url=${encodeURIComponent(r.coverUrl)}` : r.coverUrl}
                         alt={r.title}
                         aspectRatio="3/4"
-                        objectFit="cover"
+                        objectFit="contain"
                         loading="lazy"
                         className="group-hover:scale-105 transition-transform"
                       />
@@ -830,7 +864,7 @@ export default function BrowsePage() {
                     src={mangaData.coverUrl}
                     alt={mangaData.title}
                     aspectRatio="3/4"
-                    objectFit="cover"
+                    objectFit="contain"
                     priority
                     className="w-28 h-40 rounded-xl shadow-lg flex-shrink-0"
                   />

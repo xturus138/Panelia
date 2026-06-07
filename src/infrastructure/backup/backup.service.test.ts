@@ -39,8 +39,6 @@ vi.mock('~/presentation/stores/settings-store', () => ({
       readingDirection: 'ltr',
       pageFitMode: 'fit-width',
       libraryViewMode: 'grid',
-      languageFilter: 'all',
-      showNsfw: false,
       updateSettings: mockUpdateSettings,
     }),
   },
@@ -72,7 +70,7 @@ describe('Backup Service', () => {
         libraryEntries: [],
         categories: [],
         readProgress: [],
-        settings: { theme: 'light', readerMode: 'webtoon', readingDirection: 'ltr', pageFitMode: 'fit-width', libraryViewMode: 'grid', languageFilter: 'all', showNsfw: false },
+        settings: { theme: 'light', readerMode: 'webtoon', readingDirection: 'ltr', pageFitMode: 'fit-width', libraryViewMode: 'grid' },
         downloadedChapters: [],
         scrapeSources: [],
       }

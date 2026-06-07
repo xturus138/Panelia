@@ -17,6 +17,7 @@ const presets: Record<string, Preset> = {
     config: {
       name: 'Komiku',
       baseUrl: 'https://komiku.org',
+      pagesPerRequest: 3,
       searchPage: {
         // Komiku loads results from api.komiku.org via HTMX (lazy-load)
         urlTemplate: 'https://api.komiku.org/?post_type=manga&s={query}&page={page}',
